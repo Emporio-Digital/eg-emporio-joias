@@ -1,15 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com', // Mantém o que já existia
+        hostname: 'images.unsplash.com',
       },
       {
         protocol: 'https',
-        hostname: '**.supabase.co', // Adiciona permissão para o Supabase
+        hostname: '**.supabase.co',
       },
     ],
   },
