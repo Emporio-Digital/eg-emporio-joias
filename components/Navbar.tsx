@@ -97,7 +97,8 @@ export default function Navbar() {
         {menuOpen && (
           <div className="lg:hidden bg-white border-t border-gray-100 absolute top-full left-0 right-0 shadow-xl p-4 flex flex-col gap-4 animate-fade-in z-50">
              <Link href="/" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
-             <Link href="#" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
+             {/* AQUI ESTAVA O ERRO: href estava como # */}
+             <Link href="/colecoes" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
              <Link href="/sobre" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Sobre Nós</Link>
              <div className="h-[1px] bg-gray-200"></div>
              
