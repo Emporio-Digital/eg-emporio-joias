@@ -13,9 +13,10 @@ export default function RetentionPopup() {
     const hasSeen = sessionStorage.getItem("eg_retention_seen");
     
     if (!hasSeen) {
+      // ALTERADO AQUI: De 10000 (10s) para 45000 (45s)
       const timer = setTimeout(() => {
         setShow(true);
-      }, 10000); // 10 segundos
+      }, 45000); 
 
       return () => clearTimeout(timer);
     }

@@ -9,6 +9,8 @@ const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
   Trash: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Edit: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
+  Eye: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+  Alert: () => <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
 };
 
 export default function AdminDashboard() {
@@ -16,6 +18,9 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   
+  // Estado para Modal de Detalhes do Pedido
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
   // Filtros
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
@@ -116,9 +121,17 @@ export default function AdminDashboard() {
                     )}
                   </td>
                   <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
-                      {p.stock} un
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
+                        {p.stock} un
+                        </span>
+                        {/* ALERTA DE ESTOQUE BAIXO */}
+                        {p.stock > 0 && p.stock < 3 && (
+                            <div className="tooltip" title="Estoque Baixo!">
+                                <Icons.Alert />
+                            </div>
+                        )}
+                    </div>
                   </td>
                   <td className="p-4 flex justify-end gap-2">
                     <Link 
@@ -188,13 +201,20 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="p-4 font-bold text-white">R$ {order.total_amount}</td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right flex items-center justify-end gap-2">
+                       <button 
+                        onClick={() => setSelectedOrder(order)}
+                        className="text-xs bg-gray-700 text-white px-3 py-1.5 rounded hover:bg-gray-600 transition shadow flex items-center gap-1"
+                       >
+                         <Icons.Eye /> Ver
+                       </button>
+                      
                       {order.status !== 'delivered' && (
                         <button 
                           onClick={() => handleMarkDelivered(order.id)}
                           className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-500 transition shadow"
                         >
-                          Marcar Entregue
+                          Entregue
                         </button>
                       )}
                     </td>
@@ -203,6 +223,56 @@ export default function AdminDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* MODAL DETALHES DO PEDIDO */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-serif text-white">Detalhes do Pedido #{selectedOrder.id}</h2>
+                    <button onClick={() => setSelectedOrder(null)} className="text-gray-400 hover:text-white text-2xl">&times;</button>
+                </div>
+
+                <div className="space-y-4 text-sm">
+                    <div className="bg-neutral-800 p-4 rounded-lg">
+                        <h3 className="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-wider">Dados do Cliente</h3>
+                        <p><span className="text-gray-400">Nome:</span> {selectedOrder.customer_name}</p>
+                        <p><span className="text-gray-400">Email:</span> {selectedOrder.customer_email}</p>
+                        <p><span className="text-gray-400">CPF:</span> {selectedOrder.customer_cpf}</p>
+                        <p><span className="text-gray-400">Telefone:</span> {selectedOrder.customer_phone}</p>
+                    </div>
+
+                    <div className="bg-neutral-800 p-4 rounded-lg">
+                        <h3 className="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-wider">Entrega & Pagamento</h3>
+                        <p><span className="text-gray-400">Método de Envio:</span> {selectedOrder.shipping_method}</p>
+                        <p><span className="text-gray-400">Pagamento:</span> {selectedOrder.payment_method}</p>
+                        <p><span className="text-gray-400">Total:</span> R$ {selectedOrder.total_amount}</p>
+                    </div>
+
+                    <div className="bg-neutral-800 p-4 rounded-lg">
+                        <h3 className="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-wider">Itens Comprados</h3>
+                        <ul className="divide-y divide-neutral-700">
+                            {selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => (
+                                <li key={idx} className="py-2 flex justify-between">
+                                    <span>{item.title} {item.size ? `(Tam: ${item.size})` : ''} x{item.quantity}</span>
+                                    <span className="text-gray-300">R$ {item.price}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                    <button 
+                        onClick={() => setSelectedOrder(null)}
+                        className="bg-white text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-200"
+                    >
+                        Fechar
+                    </button>
+                </div>
+            </div>
         </div>
       )}
     </div>

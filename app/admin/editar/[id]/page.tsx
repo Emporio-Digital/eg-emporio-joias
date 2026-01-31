@@ -14,6 +14,14 @@ function ArrowLeftIcon({ className }: { className?: string }) {
   );
 }
 
+// OPÇÕES DE TAMANHO
+const SIZE_OPTIONS: Record<string, string[]> = {
+  aneis: ['10', '12', '14', '16', '18', '20', '22', '24', '26', '28'],
+  colares: ['40cm', '45cm', '50cm', '60cm', '70cm'],
+  pulseiras: ['PP (16cm)', 'P (17cm)', 'M (19cm)', 'G (21cm)'],
+  brincos: ['Único'],
+};
+
 export default function EditarProduto({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const productId = resolvedParams.id;
@@ -32,6 +40,9 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
 
   const [isHighlight, setIsHighlight] = useState(false);
   const [discountPercent, setDiscountPercent] = useState('');
+
+  // Estado de tamanhos
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   
   useEffect(() => {
     async function fetchProduct() {
@@ -55,6 +66,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
         setStock(data.stock.toString());
         setCurrentImage(data.images?.[0] || '');
         setIsHighlight(data.highlight || false);
+        setSelectedSizes(data.sizes || []);
         
         if (data.sale_price) {
             const percent = Math.round(((data.price - data.sale_price) / data.price) * 100);
@@ -67,11 +79,21 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
     fetchProduct();
   }, [productId, router]);
 
+  const toggleSize = (size: string) => {
+    if (selectedSizes.includes(size)) {
+      setSelectedSizes(selectedSizes.filter(s => s !== size));
+    } else {
+      setSelectedSizes([...selectedSizes, size]);
+    }
+  };
+
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
 
     try {
+      if (selectedSizes.length === 0) throw new Error('Selecione ao menos um tamanho.');
+
       const numericPrice = parseFloat(price);
       const numericDiscount = parseFloat(discountPercent);
       
@@ -110,6 +132,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             category,
             stock: parseInt(stock),
             images: [imageUrl], 
+            sizes: selectedSizes
         })
         .eq('id', productId);
 
@@ -128,6 +151,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
 
   const inputClass = "w-full p-3 rounded-lg border border-neutral-700 bg-neutral-800 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 placeholder-gray-500";
   const labelClass = "block text-sm font-medium text-gray-300 mb-1";
+  const currentSizeOptions = SIZE_OPTIONS[category] || [];
 
   if (loading) return <div className="p-10 text-center text-white">Carregando dados...</div>;
 
@@ -181,7 +205,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
 
           <div className="grid grid-cols-2 gap-4 items-end">
              <div>
-                <label className={labelClass}>Estoque</label>
+                <label className={labelClass}>Estoque Total</label>
                 <input 
                     required
                     type="number" 
@@ -199,7 +223,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
                         onChange={e => setIsHighlight(e.target.checked)}
                         className="accent-yellow-500 w-5 h-5"
                     />
-                    <span className="text-sm font-medium text-gray-300">Destaque na Home</span>
+                    <span className="text-sm font-medium text-gray-300 ml-3">Destaque na Home</span>
                 </label>
              </div>
           </div>
@@ -208,7 +232,10 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             <label className={labelClass}>Categoria</label>
             <select 
               value={category}
-              onChange={e => setCategory(e.target.value)}
+              onChange={e => {
+                  setCategory(e.target.value);
+                  setSelectedSizes([]); // Limpa se mudar categoria
+              }}
               className={inputClass}
             >
               <option value="aneis">Anéis</option>
@@ -216,6 +243,27 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
               <option value="brincos">Brincos</option>
               <option value="pulseiras">Pulseiras</option>
             </select>
+          </div>
+
+          {/* SELEÇÃO DE TAMANHOS */}
+          <div>
+             <label className={labelClass}>Tamanhos Disponíveis</label>
+             <div className="flex flex-wrap gap-2 mt-2">
+                {currentSizeOptions.map(size => (
+                    <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSize(size)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
+                            selectedSizes.includes(size)
+                             ? 'bg-yellow-500 text-black border-yellow-500 shadow-lg scale-105'
+                             : 'bg-neutral-800 text-gray-400 border-neutral-700 hover:border-gray-500'
+                        }`}
+                    >
+                        {size}
+                    </button>
+                ))}
+             </div>
           </div>
 
           <div>

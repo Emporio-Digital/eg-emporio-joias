@@ -21,6 +21,14 @@ function PhotoIcon({ className }: { className?: string }) {
   );
 }
 
+// OPÇÕES DE TAMANHO
+const SIZE_OPTIONS: Record<string, string[]> = {
+  aneis: ['10', '12', '14', '16', '18', '20', '22', '24', '26', '28'],
+  colares: ['40cm', '45cm', '50cm', '60cm', '70cm'],
+  pulseiras: ['PP (16cm)', 'P (17cm)', 'M (19cm)', 'G (21cm)'],
+  brincos: ['Único'],
+};
+
 export default function NewProduct() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -36,6 +44,9 @@ export default function NewProduct() {
   const [discountPercent, setDiscountPercent] = useState(''); 
   const [finalPricePreview, setFinalPricePreview] = useState<number | null>(null);
 
+  // Novo estado para tamanhos
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
+
   useEffect(() => {
     const p = parseFloat(price);
     const d = parseFloat(discountPercent);
@@ -46,12 +57,26 @@ export default function NewProduct() {
     }
   }, [price, discountPercent]);
 
+  // Resetar tamanhos quando mudar categoria
+  useEffect(() => {
+    setSelectedSizes([]);
+  }, [category]);
+
+  const toggleSize = (size: string) => {
+    if (selectedSizes.includes(size)) {
+      setSelectedSizes(selectedSizes.filter(s => s !== size));
+    } else {
+      setSelectedSizes([...selectedSizes, size]);
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (!imageFile) throw new Error('Por favor, selecione uma imagem.');
+      if (selectedSizes.length === 0) throw new Error('Selecione pelo menos um tamanho disponível.');
 
       const numericPrice = parseFloat(price);
       const numericDiscount = parseFloat(discountPercent);
@@ -86,7 +111,7 @@ export default function NewProduct() {
             category,
             stock: parseInt(stock),
             images: [publicUrl],
-            sizes: category === 'aneis' ? ['12', '14', '16', '18', '20', '22'] : [], 
+            sizes: selectedSizes, // Salvando array de tamanhos
           },
         ]);
 
@@ -106,6 +131,8 @@ export default function NewProduct() {
   // ESTILOS DE INPUT PADRONIZADOS PARA DARK MODE
   const inputClass = "w-full p-3 rounded-lg border border-neutral-700 bg-neutral-800 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 placeholder-gray-500";
   const labelClass = "block text-sm font-medium text-gray-300 mb-1";
+
+  const currentSizeOptions = SIZE_OPTIONS[category] || [];
 
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 max-w-3xl mx-auto">
@@ -172,7 +199,7 @@ export default function NewProduct() {
 
           <div className="grid grid-cols-2 gap-4 items-end">
             <div>
-              <label className={labelClass}>Estoque</label>
+              <label className={labelClass}>Estoque Total</label>
               <input 
                 required
                 type="number" 
@@ -213,6 +240,28 @@ export default function NewProduct() {
               <option value="brincos">Brincos</option>
               <option value="pulseiras">Pulseiras</option>
             </select>
+          </div>
+
+          {/* SELEÇÃO DE TAMANHOS */}
+          <div>
+             <label className={labelClass}>Tamanhos Disponíveis</label>
+             <div className="flex flex-wrap gap-2 mt-2">
+                {currentSizeOptions.map(size => (
+                    <button
+                        key={size}
+                        type="button"
+                        onClick={() => toggleSize(size)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
+                            selectedSizes.includes(size)
+                             ? 'bg-yellow-500 text-black border-yellow-500 shadow-lg scale-105'
+                             : 'bg-neutral-800 text-gray-400 border-neutral-700 hover:border-gray-500'
+                        }`}
+                    >
+                        {size}
+                    </button>
+                ))}
+             </div>
+             <p className="text-[10px] text-gray-500 mt-2">Clique para selecionar/deselecionar.</p>
           </div>
 
           <div>

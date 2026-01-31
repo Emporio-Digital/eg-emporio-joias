@@ -13,6 +13,7 @@ type Product = {
   images: string[];
   category: string;
   description: string;
+  stock: number; // Adicionado
 };
 
 export default function Home() {
@@ -65,6 +66,7 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {destaques.map((item) => {
                   const discountPercent = item.sale_price ? calculateDiscount(item.price, item.sale_price) : 0;
+                  const isOutOfStock = item.stock <= 0;
 
                   return (
                     <Link href={`/produto/${item.id}`} key={item.id} className="group relative backdrop-blur-md bg-black/40 border border-white/10 hover:border-yellow-500/50 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/10 hover:-translate-y-2 cursor-pointer block shadow-sm">
@@ -72,15 +74,23 @@ export default function Home() {
                          <img 
                             src={item.images?.[0] || 'https://via.placeholder.com/400x500?text=Sem+Foto'} 
                             alt={item.title} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                            className={`w-full h-full object-cover transition-transform duration-700 ${isOutOfStock ? 'grayscale opacity-50' : 'group-hover:scale-110'}`} 
                          />
                          
+                         {/* ESGOTADO OVERLAY */}
+                         {isOutOfStock && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                                <span className="text-white font-bold border-2 border-white px-4 py-2 uppercase tracking-widest text-lg">Esgotado</span>
+                            </div>
+                         )}
+
                          {/* ETIQUETA MARKETING MELHORADA */}
-                         {discountPercent > 0 ? (
+                         {!isOutOfStock && discountPercent > 0 && (
                             <div className="absolute top-0 right-0 bg-gradient-to-bl from-yellow-300 via-yellow-500 to-yellow-600 text-black text-xs font-black px-4 py-2 rounded-bl-xl shadow-[0_4px_12px_rgba(234,179,8,0.4)] tracking-widest z-10 transform transition-transform hover:scale-105">
                                 {discountPercent}% OFF
                             </div>
-                         ) : (
+                         )}
+                         {!isOutOfStock && discountPercent === 0 && (
                             <div className="absolute top-0 right-0 bg-white text-black text-[10px] font-bold px-3 py-1 rounded-bl-lg shadow-sm tracking-wider z-10">
                                 NOVO
                             </div>
@@ -108,8 +118,12 @@ export default function Home() {
                         
                         <p className="text-xs text-gray-400 mt-1 mb-4">10x sem juros</p>
                         
-                        <div className="w-full py-3 bg-white text-black group-hover:bg-yellow-500 group-hover:text-black rounded-lg transition-all text-xs font-bold uppercase tracking-widest shadow-md flex items-center justify-center">
-                          Ver Detalhes
+                        <div className={`w-full py-3 rounded-lg transition-all text-xs font-bold uppercase tracking-widest shadow-md flex items-center justify-center ${
+                            isOutOfStock 
+                            ? 'bg-neutral-800 text-gray-500 cursor-not-allowed'
+                            : 'bg-white text-black group-hover:bg-yellow-500 group-hover:text-black'
+                        }`}>
+                          {isOutOfStock ? 'Indisponível' : 'Ver Detalhes'}
                         </div>
                       </div>
                     </Link>
@@ -133,7 +147,9 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
-            {normais.map((item) => (
+            {normais.map((item) => {
+              const isOutOfStock = item.stock <= 0;
+              return (
               <Link href={`/produto/${item.id}`} key={item.id} className="relative group backdrop-blur-sm bg-black/40 border border-white/10 hover:border-yellow-500/50 rounded-xl p-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 cursor-pointer block shadow-sm">
                 
                 <div className="h-40 w-full bg-white/5 rounded-lg mb-3 relative overflow-hidden flex items-center justify-center border border-white/5 shadow-inner">
@@ -141,12 +157,19 @@ export default function Home() {
                     <img 
                       src={item.images[0]} 
                       alt={item.title} 
-                      className="w-full h-full object-cover"
+                      className={`w-full h-full object-cover ${isOutOfStock ? 'grayscale opacity-40' : ''}`}
                     />
                   ) : (
                     <span className="text-gray-600 text-xs uppercase font-bold tracking-widest">Sem Foto</span>
                   )}
-                  {item.sale_price && (
+                  
+                  {isOutOfStock && (
+                     <div className="absolute inset-0 flex items-center justify-center">
+                         <span className="bg-black/80 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-widest border border-white/20">Esgotado</span>
+                     </div>
+                  )}
+
+                  {!isOutOfStock && item.sale_price && (
                       <div className="absolute top-2 right-2 bg-yellow-500 w-2 h-2 rounded-full shadow-sm animate-pulse"></div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-tr from-yellow-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -168,14 +191,18 @@ export default function Home() {
                     )}
                   </div>
                   
-                  <p className="text-[10px] text-green-400 mt-0.5 font-medium bg-green-900/30 inline-block px-2 rounded-full border border-green-800/50">Disponível</p>
+                  {!isOutOfStock && (
+                    <p className="text-[10px] text-green-400 mt-0.5 font-medium bg-green-900/30 inline-block px-2 rounded-full border border-green-800/50">Disponível</p>
+                  )}
                   
-                  <div className="w-full mt-3 text-[10px] border border-white/20 py-2 rounded-md text-gray-300 group-hover:bg-yellow-500 group-hover:text-black group-hover:border-yellow-500 transition-all uppercase font-bold hover:shadow-md text-center">
-                    Comprar
+                  <div className={`w-full mt-3 text-[10px] border border-white/20 py-2 rounded-md transition-all uppercase font-bold hover:shadow-md text-center ${
+                      isOutOfStock ? 'text-gray-600 cursor-not-allowed' : 'text-gray-300 group-hover:bg-yellow-500 group-hover:text-black group-hover:border-yellow-500'
+                  }`}>
+                    {isOutOfStock ? 'Esgotado' : 'Comprar'}
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
         </section>
     </div>

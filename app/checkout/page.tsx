@@ -39,15 +39,20 @@ export default function Checkout() {
     setLoading(true);
 
     try {
+        // 1. TENTA RESERVAR O ESTOQUE PRIMEIRO (Atômico via RPC)
+        // Isso garante que se dois clientes clicarem ao mesmo tempo, 
+        // o banco de dados só vai permitir um deles passar.
         for (const item of items) {
-            const { data: stockSuccess, error: stockError } = await supabase
+            const { error: stockError } = await supabase
                 .rpc('decrement_stock', { product_id: item.id, quantity: item.quantity });
             
-            if (stockError || !stockSuccess) {
-                throw new Error(`Estoque insuficiente para o produto: ${item.title}`);
+            if (stockError) {
+                // Se der erro aqui, é porque o estoque acabou no exato momento do clique
+                throw new Error(`O produto "${item.title}" acabou de esgotar ou não tem estoque suficiente.`);
             }
         }
 
+        // 2. CRIA O PEDIDO APÓS GARANTIR O ESTOQUE
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert([
@@ -60,7 +65,7 @@ export default function Checkout() {
                     status: 'pending', 
                     payment_method: metodoPagamento,
                     shipping_method: freteSelecionado,
-                    items: items 
+                    items: items // Salva o snapshot dos itens (incluindo tamanho escolhido)
                 }
             ])
             .select()
@@ -74,7 +79,7 @@ export default function Checkout() {
 
     } catch (error: any) {
         console.error(error);
-        alert("Erro ao processar pedido: " + error.message);
+        alert("Não foi possível concluir o pedido: " + error.message);
     } finally {
         setLoading(false);
     }
@@ -279,13 +284,17 @@ export default function Checkout() {
                     {items.map((item, idx) => (
                         <div key={`${item.id}-${idx}`} className="flex gap-3">
                             <div className="w-16 h-16 bg-neutral-800 rounded-lg relative overflow-hidden border border-white/10 flex-shrink-0">
-                                <img src={item.image || '/bg-joias.png'} alt="Produto" className="w-full h-full object-cover" />
+                                <img src={item.images?.[0] || '/placeholder.jpg'} alt="Produto" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1">
                                 <p className="text-xs font-bold text-gray-200 line-clamp-2">{item.title}</p>
                                 <p className="text-[10px] text-gray-500">Qtd: {item.quantity}</p>
-                                <p className="text-xs font-bold text-yellow-500">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                                {/* EXIBE O TAMANHO SE HOUVER */}
+                                {item.size && (
+                                   <p className="text-[10px] text-yellow-500 font-bold border border-yellow-500/30 bg-yellow-900/10 px-1 rounded w-fit mt-1">{item.size}</p>
+                                )}
+                                <p className="text-xs font-bold text-white mt-1">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.sale_price || item.price)}
                                 </p>
                             </div>
                         </div>

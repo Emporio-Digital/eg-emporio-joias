@@ -6,7 +6,7 @@ import { useState, useEffect, use } from "react";
 import { supabase } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 
-// === DADOS TÉCNICOS DE MEDIDAS (Estáticos) ===
+// === DADOS TÉCNICOS DE MEDIDAS (Estáticos para Guia) ===
 const tabelasMedidas = {
   anel: {
     titulo: "Tabela de Anéis",
@@ -66,6 +66,8 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
   const [produto, setProduto] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showGuia, setShowGuia] = useState(false);
+  
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -76,12 +78,35 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
             .eq('id', produtoId)
             .single();
         
-        if (data) setProduto(data);
+        if (data) {
+             setProduto(data);
+             // Se tiver apenas um tamanho (ex: brinco 'único'), seleciona automaticamente
+             if (data.sizes && data.sizes.length === 1) {
+                 setSelectedSize(data.sizes[0]);
+             }
+        }
         if (error) console.error("Erro ao buscar produto:", error);
         setLoading(false);
     }
     fetchProduct();
   }, [produtoId]);
+
+  const handleAddToCart = () => {
+      if (!produto) return;
+      if (produto.stock <= 0) return;
+      
+      // Se tiver opções de tamanho e o usuário não selecionou
+      if (produto.sizes && produto.sizes.length > 0 && !selectedSize) {
+          alert('Por favor, selecione um tamanho/opção.');
+          return;
+      }
+
+      // Adiciona ao carrinho com o tamanho selecionado
+      addToCart({
+          ...produto,
+          size: selectedSize
+      });
+  };
 
   if (loading) {
       return (
@@ -107,10 +132,11 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
 
   const precoExibicao = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(produto.sale_price || produto.price);
   
-  // Cálculo de desconto para a etiqueta
   const descontoPorcentagem = produto.sale_price 
     ? Math.round(((produto.price - produto.sale_price) / produto.price) * 100) 
     : 0;
+  
+  const isOutOfStock = produto.stock <= 0;
 
   return (
     <>
@@ -124,10 +150,16 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
                       src={produto.images?.[0] || '/placeholder.jpg'} 
                       alt={produto.title} 
                       fill 
-                      className="object-cover hover:scale-110 transition-transform duration-1000"
+                      className={`object-cover transition-transform duration-1000 ${isOutOfStock ? 'grayscale opacity-50' : 'hover:scale-110'}`}
                   />
-                  {/* Etiqueta de Marketing Agressivo */}
-                  {produto.sale_price && (
+                  
+                  {isOutOfStock && (
+                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                         <span className="text-white font-bold border-2 border-white px-6 py-3 uppercase tracking-widest text-xl">Esgotado</span>
+                     </div>
+                  )}
+
+                  {!isOutOfStock && produto.sale_price && (
                      <div className="absolute top-0 right-0 bg-gradient-to-bl from-yellow-300 via-yellow-500 to-yellow-600 text-black text-sm font-black px-6 py-2 rounded-bl-2xl shadow-lg tracking-wider transform transition-transform hover:scale-105 z-10">
                         {descontoPorcentagem}% OFF
                      </div>
@@ -136,7 +168,6 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
           </div>
     
           {/* === COLUNA DIREITA: DETALHES (DARK) === */}
-          {/* Fundo mudado para Preto/Neutro com transparência para ler o texto branco */}
           <div className="w-full md:w-1/2 flex flex-col animate-fade-in bg-neutral-900/80 backdrop-blur-md p-6 md:p-10 rounded-3xl border border-white/10 shadow-xl">
               
               <nav className="text-xs text-gray-400 mb-6 uppercase tracking-wider font-medium">
@@ -182,23 +213,25 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
                   </p>
               </div>
     
+              {/* SELEÇÃO DE TAMANHOS */}
               <div className="mb-10">
                   <h3 className="text-sm font-bold text-white uppercase tracking-widest mb-3">
-                    {categoriaNormalizada === 'colar' ? 'Comprimento' : categoriaNormalizada === 'pulseira' ? 'Tamanho' : 'Aro/Tamanho'}
+                    {categoriaNormalizada === 'colar' ? 'Comprimento' : categoriaNormalizada === 'pulseira' ? 'Tamanho' : 'Selecione a Opção'}
                   </h3>
                   
                   <div className="flex gap-3 flex-wrap">
-                      {categoriaNormalizada === 'anel' && [12, 14, 16, 18, 20, 22, 24].map((t) => (
-                          <button key={t} className="btn-tamanho">{t}</button>
-                      ))}
-                      {categoriaNormalizada === 'colar' && ['45cm', '50cm', '60cm'].map((t) => (
-                           <button key={t} className="btn-tamanho px-4 w-auto">{t}</button>
-                      ))}
-                      {categoriaNormalizada === 'pulseira' && ['P', 'M', 'G'].map((t) => (
-                           <button key={t} className="btn-tamanho">{t}</button>
-                      ))}
-                      {categoriaNormalizada === 'brinco' && (
-                          <span className="text-sm text-gray-400 italic border border-white/20 px-3 py-1 rounded-full">Tamanho Único</span>
+                      {produto.sizes && produto.sizes.length > 0 ? (
+                          produto.sizes.map((t: string) => (
+                              <button 
+                                key={t} 
+                                onClick={() => setSelectedSize(t)}
+                                className={`btn-tamanho px-4 w-auto ${selectedSize === t ? 'border-yellow-500 bg-yellow-500 text-black font-bold' : ''}`}
+                              >
+                                {t}
+                              </button>
+                          ))
+                      ) : (
+                         <span className="text-sm text-gray-500 italic">Tamanho Único</span>
                       )}
                   </div>
                   
@@ -217,22 +250,29 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
     
               <div className="flex flex-col gap-4">
                   <button 
-                    onClick={() => addToCart(produto)}
-                    className="w-full py-4 bg-white text-black text-sm font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-yellow-500 hover:text-black hover:shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all transform hover:-translate-y-1 active:scale-95"
+                    onClick={handleAddToCart}
+                    disabled={isOutOfStock}
+                    className={`w-full py-4 text-sm font-bold uppercase tracking-[0.2em] rounded-xl transition-all transform hover:-translate-y-1 active:scale-95 ${
+                        isOutOfStock 
+                        ? 'bg-neutral-800 text-gray-500 cursor-not-allowed hover:none'
+                        : 'bg-white text-black hover:bg-yellow-500 hover:text-black hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]'
+                    }`}
                   >
-                      Adicionar ao Carrinho
+                      {isOutOfStock ? 'Produto Esgotado' : 'Adicionar ao Carrinho'}
                   </button>
                   
-                  <a 
-                      href={`https://wa.me/5511916053292?text=Olá! Gostaria de saber mais sobre o produto: ${produto.title} (${precoExibicao})`} 
-                      target="_blank"
-                      className="w-full py-4 bg-green-600 text-white text-sm font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-green-500 hover:shadow-xl transition-all flex items-center justify-center gap-2"
-                  >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                          <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/>
-                      </svg>
-                      Comprar no WhatsApp
-                  </a>
+                  {!isOutOfStock && (
+                    <a 
+                        href={`https://wa.me/5511916053292?text=Olá! Gostaria de saber mais sobre o produto: ${produto.title} (${precoExibicao})`} 
+                        target="_blank"
+                        className="w-full py-4 bg-green-600 text-white text-sm font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-green-500 hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592z"/>
+                        </svg>
+                        Comprar no WhatsApp
+                    </a>
+                  )}
               </div>
     
               <div className="flex gap-4 mt-8 pt-6 border-t border-white/10 justify-center opacity-60 grayscale hover:grayscale-0 transition-all text-white">
@@ -242,7 +282,7 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
                   </div>
                   <div className="text-center">
                       <span className="block text-2xl mb-1">💎</span>
-                      <span className="text-[10px] uppercase font-bold">Garantia Eterna</span>
+                      <span className="text-[10px] uppercase font-bold">Garantia de 1 Ano</span>
                   </div>
               </div>
     
@@ -287,7 +327,7 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
     
       <style jsx>{`
         .btn-tamanho {
-            width: 3rem;
+            min-width: 3rem;
             height: 3rem;
             border-radius: 9999px;
             border: 1px solid rgba(255,255,255,0.2);
@@ -304,11 +344,6 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
             color: #000;
             background-color: #eab308;
             font-weight: bold;
-        }
-        .btn-tamanho:focus {
-            background-color: #fefce8;
-            color: #000;
-            border-color: #eab308;
         }
       `}</style>
     </>
