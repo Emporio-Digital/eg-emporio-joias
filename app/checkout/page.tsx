@@ -40,14 +40,11 @@ export default function Checkout() {
 
     try {
         // 1. TENTA RESERVAR O ESTOQUE PRIMEIRO (Atômico via RPC)
-        // Isso garante que se dois clientes clicarem ao mesmo tempo, 
-        // o banco de dados só vai permitir um deles passar.
         for (const item of items) {
             const { error: stockError } = await supabase
                 .rpc('decrement_stock', { product_id: item.id, quantity: item.quantity });
             
             if (stockError) {
-                // Se der erro aqui, é porque o estoque acabou no exato momento do clique
                 throw new Error(`O produto "${item.title}" acabou de esgotar ou não tem estoque suficiente.`);
             }
         }
@@ -65,7 +62,7 @@ export default function Checkout() {
                     status: 'pending', 
                     payment_method: metodoPagamento,
                     shipping_method: freteSelecionado,
-                    items: items // Salva o snapshot dos itens (incluindo tamanho escolhido)
+                    items: items 
                 }
             ])
             .select()
@@ -284,7 +281,8 @@ export default function Checkout() {
                     {items.map((item, idx) => (
                         <div key={`${item.id}-${idx}`} className="flex gap-3">
                             <div className="w-16 h-16 bg-neutral-800 rounded-lg relative overflow-hidden border border-white/10 flex-shrink-0">
-                                <img src={item.images?.[0] || '/placeholder.jpg'} alt="Produto" className="w-full h-full object-cover" />
+                                {/* CORREÇÃO AQUI: item.image em vez de item.images[0] */}
+                                <img src={item.image || '/placeholder.jpg'} alt="Produto" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1">
                                 <p className="text-xs font-bold text-gray-200 line-clamp-2">{item.title}</p>
