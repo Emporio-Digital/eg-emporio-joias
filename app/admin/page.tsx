@@ -122,7 +122,15 @@ export default function AdminDashboard() {
                     </span>
                   </td>
                   <td className="p-4 flex justify-end gap-2">
-                    <button className="p-2 text-blue-600 hover:bg-blue-50 rounded transition" title="Editar"><Icons.Edit /></button>
+                    {/* BOTÃO EDITAR CORRIGIDO AQUI PARA LINK */}
+                    <Link 
+                        href={`/admin/editar/${p.id}`} 
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded transition flex items-center justify-center" 
+                        title="Editar"
+                    >
+                        <Icons.Edit />
+                    </Link>
+                    
                     <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Excluir"><Icons.Trash /></button>
                   </td>
                 </tr>

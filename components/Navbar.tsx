@@ -4,17 +4,14 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import CartSidebar from "./CartSidebar";
-import { useCart } from "@/context/CartContext"; // <--- Import do Contexto
+import { useCart } from "@/context/CartContext"; 
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  
-  // Usando dados reais do carrinho em vez de estado local
   const { cartOpen, setCartOpen, cartCount } = useCart();
 
   return (
     <>
-    {/* Componente do Carrinho (Controlado pelo Contexto) */}
     <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
     <header className="sticky top-0 w-full z-50 bg-white/85 backdrop-blur-2xl border-b border-white/60 shadow-lg transition-all duration-500">
@@ -32,14 +29,16 @@ export default function Navbar() {
               <h1 className="text-lg md:text-2xl font-bold text-gray-900 tracking-widest group-hover:text-gold-600 transition-colors font-serif">
                 EG EMPÓRIO <span className="text-gold-500">JOIAS</span>
               </h1>
-              <p className="hidden md:block text-[10px] text-gray-500 uppercase tracking-[0.25em] font-medium mt-0.5">Exclusividade em cada detalhe</p>
+              <p className="hidden md:block text-[10px] text-gray-500 uppercase tracking-[0.25em] font-medium mt-0.5">
+                Elegância em cada detalhe
+              </p>
             </div>
           </Link>
 
           {/* Menu Desktop */}
           <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-700 tracking-wide">
             <Link href="/" className="hover:text-gold-600 hover:scale-105 transition-all">INÍCIO</Link>
-            <Link href="#" className="hover:text-gold-600 hover:scale-105 transition-all">COLEÇÕES</Link>
+            <Link href="/colecoes" className="hover:text-gold-600 hover:scale-105 transition-all">COLEÇÕES</Link>
             <Link href="/sobre" className="hover:text-gold-600 hover:scale-105 transition-all">SOBRE NÓS</Link>
             
             <div className="h-6 w-[1px] bg-gray-300 mx-2"></div>
@@ -53,7 +52,6 @@ export default function Navbar() {
                   <span className="hidden xl:inline">Entrar</span>
                 </Link>
 
-                {/* Botão Carrinho (Abre via Contexto) */}
                 <button 
                   onClick={() => setCartOpen(true)}
                   className="flex items-center gap-2 text-gold-700 font-bold border border-gold-400/30 bg-gold-50/50 px-4 py-2 rounded-full hover:shadow-md transition-all group"
@@ -61,13 +59,12 @@ export default function Navbar() {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                   </svg>
-                  {/* Número dinâmico do contexto */}
                   <span>({cartCount})</span>
                 </button>
             </div>
           </nav>
 
-          {/* Botão Hambúrguer Mobile */}
+          {/* Botão Hambúrguer */}
           <button 
             className="lg:hidden text-gray-800 p-2"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -83,7 +80,7 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* Botão WhatsApp Desktop */}
+          {/* Botão WhatsApp */}
           <a 
             href="https://wa.me/5511916053292?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20EG%20Emp%C3%B3rio%20Joias%20e%20gostaria%20de%20atendimento." 
             target="_blank" 
@@ -96,7 +93,7 @@ export default function Navbar() {
           </a>
         </div>
 
-        {/* MENU MOBILE EXPANDIDO */}
+        {/* MENU MOBILE */}
         {menuOpen && (
           <div className="lg:hidden bg-white border-t border-gray-100 absolute top-full left-0 right-0 shadow-xl p-4 flex flex-col gap-4 animate-fade-in z-50">
              <Link href="/" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
@@ -115,10 +112,23 @@ export default function Navbar() {
         )}
       </div>
 
-      <div className="w-full bg-white/50 border-t border-white/60 py-1.5 text-center text-[10px] md:text-xs text-gray-500 tracking-wider font-medium flex justify-center gap-6">
-          <span>💎 Ouro 18k</span>
-          <span>✨ Prata</span>
-          <span>🛡️ Ródio Branco</span>
+      {/* --- UPGRADE DA BARRA SUPERIOR (MODERNA & VISÍVEL) --- */}
+      <div className="w-full bg-gradient-to-r from-gray-50 via-white to-gray-50 border-t border-gray-100 py-3 relative overflow-hidden">
+          {/* Linha Decorativa Dourada Sutil */}
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-50"></div>
+          
+          {/* TEXTO AJUSTADO: text-gray-900 e font-bold */}
+          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-[10px] md:text-xs font-serif tracking-[0.2em] text-gray-900 font-bold uppercase">
+              <span className="flex items-center gap-2 hover:text-gold-600 transition-colors cursor-default">
+                 <span className="text-yellow-500 text-sm">✦</span> Ouro 18k
+              </span>
+              <span className="flex items-center gap-2 hover:text-gold-600 transition-colors cursor-default">
+                 <span className="text-gray-400 text-sm">✦</span> Prata 925
+              </span>
+              <span className="flex items-center gap-2 hover:text-gold-600 transition-colors cursor-default">
+                 <span className="text-gray-400 text-sm">✦</span> Ródio Branco
+              </span>
+          </div>
       </div>
     </header>
     </>
