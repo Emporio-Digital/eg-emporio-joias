@@ -68,6 +68,7 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
   const [showGuia, setShowGuia] = useState(false);
   
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [activeImage, setActiveImage] = useState<string>(''); // Controla a foto grande
 
   useEffect(() => {
     async function fetchProduct() {
@@ -80,6 +81,10 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
         
         if (data) {
              setProduto(data);
+             // Define a imagem principal como ativa inicial
+             if (data.images && data.images.length > 0) {
+                 setActiveImage(data.images[0]);
+             }
              // Se tiver apenas um tamanho (ex: brinco 'único'), seleciona automaticamente
              if (data.sizes && data.sizes.length === 1) {
                  setSelectedSize(data.sizes[0]);
@@ -138,6 +143,9 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
   
   const isOutOfStock = produto.stock <= 0;
 
+  // Lista combinada para as miniaturas: Principal + Galeria
+  const todasImagens = [produto.images?.[0], ...(produto.gallery || [])].filter(Boolean);
+
   return (
     <>
       <div className="w-full min-h-screen pt-10 pb-20 px-4 flex justify-center">
@@ -145,9 +153,10 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
           
           {/* === COLUNA ESQUERDA: FOTO === */}
           <div className="w-full md:w-1/2 sticky top-24">
-              <div className="relative aspect-square w-full rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.05)] border border-white/10 bg-black">
+              {/* Foto Grande Ativa */}
+              <div className="relative aspect-square w-full rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(255,255,255,0.05)] border border-white/10 bg-black mb-4">
                   <Image 
-                      src={produto.images?.[0] || '/placeholder.jpg'} 
+                      src={activeImage || '/placeholder.jpg'} 
                       alt={produto.title} 
                       fill 
                       className={`object-cover transition-transform duration-1000 ${isOutOfStock ? 'grayscale opacity-50' : 'hover:scale-110'}`}
@@ -165,6 +174,25 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
                      </div>
                   )}
               </div>
+
+              {/* Miniaturas da Galeria (Só aparece se tiver mais de 1 foto) */}
+              {todasImagens.length > 1 && (
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                      {todasImagens.map((img, idx) => (
+                          <button 
+                            key={idx}
+                            onClick={() => setActiveImage(img)}
+                            className={`relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden border-2 transition-all ${
+                                activeImage === img 
+                                ? 'border-yellow-500 opacity-100 ring-2 ring-yellow-500/30' 
+                                : 'border-transparent opacity-60 hover:opacity-100 border-white/10'
+                            }`}
+                          >
+                             <Image src={img} alt={`Thumb ${idx}`} fill className="object-cover" />
+                          </button>
+                      ))}
+                  </div>
+              )}
           </div>
     
           {/* === COLUNA DIREITA: DETALHES (DARK) === */}
@@ -344,6 +372,13 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
             color: #000;
             background-color: #eab308;
             font-weight: bold;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
       `}</style>
     </>

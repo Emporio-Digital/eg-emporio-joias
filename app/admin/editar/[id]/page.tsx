@@ -35,8 +35,14 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
   const [category, setCategory] = useState('aneis');
   const [description, setDescription] = useState('');
   const [stock, setStock] = useState('1');
+  
+  // Imagem Principal
   const [currentImage, setCurrentImage] = useState(''); 
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
+
+  // Galeria
+  const [currentGallery, setCurrentGallery] = useState<string[]>([]);
+  const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
 
   const [isHighlight, setIsHighlight] = useState(false);
   const [discountPercent, setDiscountPercent] = useState('');
@@ -64,7 +70,11 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
         setCategory(data.category);
         setDescription(data.description || '');
         setStock(data.stock.toString());
+        
+        // Pega imagem principal e galeria
         setCurrentImage(data.images?.[0] || '');
+        setCurrentGallery(data.gallery || []);
+
         setIsHighlight(data.highlight || false);
         setSelectedSizes(data.sizes || []);
         
@@ -87,6 +97,18 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
     }
   };
 
+  const removeGalleryImage = (urlToRemove: string) => {
+      if (confirm('Remover esta foto da galeria?')) {
+          setCurrentGallery(prev => prev.filter(u => u !== urlToRemove));
+      }
+  };
+
+  const handleGalleryUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+          setNewGalleryFiles(Array.from(e.target.files));
+      }
+  };
+
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -102,11 +124,11 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
         salePrice = numericPrice - (numericPrice * (numericDiscount / 100));
       }
 
+      // 1. Imagem Principal (Se alterada)
       let imageUrl = currentImage;
-
       if (newImageFile) {
           const fileExt = newImageFile.name.split('.').pop();
-          const fileName = `${Date.now()}.${fileExt}`;
+          const fileName = `main_${Date.now()}.${fileExt}`;
           
           const { error: uploadError } = await supabase.storage
             .from('products')
@@ -121,6 +143,27 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
           imageUrl = publicUrl;
       }
 
+      // 2. Imagens Galeria (Novas)
+      let updatedGallery = [...currentGallery];
+      if (newGalleryFiles.length > 0) {
+          for (let i = 0; i < newGalleryFiles.length; i++) {
+              const file = newGalleryFiles[i];
+              const ext = file.name.split('.').pop();
+              const name = `gallery_${Date.now()}_${i}.${ext}`;
+              
+              const { error: gErr } = await supabase.storage
+                .from('products')
+                .upload(name, file);
+
+              if (!gErr) {
+                 const { data: { publicUrl } } = supabase.storage
+                    .from('products')
+                    .getPublicUrl(name);
+                 updatedGallery.push(publicUrl);
+              }
+          }
+      }
+
       const { error: updateError } = await supabase
         .from('products')
         .update({
@@ -131,7 +174,8 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             description,
             category,
             stock: parseInt(stock),
-            images: [imageUrl], 
+            images: [imageUrl], // Principal
+            gallery: updatedGallery, // Extras
             sizes: selectedSizes
         })
         .eq('id', productId);
@@ -276,24 +320,64 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             />
           </div>
 
-          <div>
-            <label className={labelClass}>Imagem do Produto</label>
-            
-            <div className="flex items-start gap-4">
-                {currentImage && !newImageFile && (
-                    <div className="relative w-24 h-24 border border-neutral-700 rounded-lg overflow-hidden">
-                        <Image src={currentImage} alt="Atual" fill className="object-cover" />
+          {/* IMAGENS */}
+          <div className="space-y-4 pt-4 border-t border-neutral-800">
+            <h3 className="text-white font-bold text-lg">Gerenciar Imagens</h3>
+
+            {/* Principal */}
+            <div>
+                <label className={labelClass}>Foto Principal</label>
+                <div className="flex items-start gap-4">
+                    {currentImage && !newImageFile && (
+                        <div className="relative w-24 h-24 border border-neutral-700 rounded-lg overflow-hidden bg-black">
+                            <Image src={currentImage} alt="Atual" fill className="object-cover" />
+                        </div>
+                    )}
+                    
+                    <div className="flex-1">
+                        <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={e => setNewImageFile(e.target.files?.[0] || null)}
+                            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-yellow-500 hover:file:bg-neutral-700"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">Selecione para trocar a capa atual.</p>
                     </div>
-                )}
+                </div>
+            </div>
+
+            {/* Galeria */}
+            <div>
+                <label className={labelClass}>Galeria de Fotos Extras</label>
                 
-                <div className="flex-1">
+                {/* Lista Atual */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {currentGallery.map((url, idx) => (
+                        <div key={idx} className="relative w-20 h-20 border border-neutral-700 rounded-lg overflow-hidden group">
+                             <Image src={url} alt={`Galeria ${idx}`} fill className="object-cover" />
+                             <button
+                                type="button"
+                                onClick={() => removeGalleryImage(url)}
+                                className="absolute top-0 right-0 bg-red-600 text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                             >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                                </svg>
+                             </button>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Adicionar Mais */}
+                <div className="p-3 bg-neutral-800 rounded-lg border border-neutral-700">
+                    <p className="text-xs text-gray-400 mb-2">Adicionar mais à galeria:</p>
                     <input 
                         type="file" 
                         accept="image/*"
-                        onChange={e => setNewImageFile(e.target.files?.[0] || null)}
-                        className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-yellow-500 hover:file:bg-neutral-700"
+                        multiple
+                        onChange={handleGalleryUpload}
+                        className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-neutral-900 file:text-yellow-500 hover:file:bg-neutral-700"
                     />
-                    <p className="text-[10px] text-gray-500 mt-1">Deixe vazio para manter a imagem atual.</p>
                 </div>
             </div>
           </div>

@@ -38,7 +38,10 @@ export default function NewProduct() {
   const [category, setCategory] = useState('aneis');
   const [description, setDescription] = useState('');
   const [stock, setStock] = useState('1');
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  
+  // IMAGENS
+  const [imageFile, setImageFile] = useState<File | null>(null); // Principal
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]); // Extras
 
   const [isHighlight, setIsHighlight] = useState(false); 
   const [discountPercent, setDiscountPercent] = useState(''); 
@@ -70,12 +73,20 @@ export default function NewProduct() {
     }
   };
 
+  const handleGallerySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+        // Pega os arquivos e limita a 4 fotos extras
+        const newFiles = Array.from(e.target.files).slice(0, 4);
+        setGalleryFiles(newFiles);
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (!imageFile) throw new Error('Por favor, selecione uma imagem.');
+      if (!imageFile) throw new Error('Por favor, selecione a imagem principal.');
       if (selectedSizes.length === 0) throw new Error('Selecione pelo menos um tamanho disponível.');
 
       const numericPrice = parseFloat(price);
@@ -86,8 +97,9 @@ export default function NewProduct() {
         salePrice = numericPrice - (numericPrice * (numericDiscount / 100));
       }
 
+      // 1. Upload Imagem Principal
       const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const fileName = `main_${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('products')
@@ -98,6 +110,27 @@ export default function NewProduct() {
       const { data: { publicUrl } } = supabase.storage
         .from('products')
         .getPublicUrl(fileName);
+
+      // 2. Upload Galeria (Se houver)
+      const galleryUrls: string[] = [];
+      if (galleryFiles.length > 0) {
+          for (let i = 0; i < galleryFiles.length; i++) {
+              const file = galleryFiles[i];
+              const gExt = file.name.split('.').pop();
+              const gName = `gallery_${Date.now()}_${i}.${gExt}`;
+
+              const { error: gErr } = await supabase.storage
+                  .from('products')
+                  .upload(gName, file);
+              
+              if (!gErr) {
+                  const { data: { publicUrl: gUrl } } = supabase.storage
+                      .from('products')
+                      .getPublicUrl(gName);
+                  galleryUrls.push(gUrl);
+              }
+          }
+      }
 
       const { error: dbError } = await supabase
         .from('products')
@@ -110,8 +143,9 @@ export default function NewProduct() {
             description,
             category,
             stock: parseInt(stock),
-            images: [publicUrl],
-            sizes: selectedSizes, // Salvando array de tamanhos
+            images: [publicUrl], // Mantém compatibilidade
+            gallery: galleryUrls, // Nova coluna
+            sizes: selectedSizes,
           },
         ]);
 
@@ -275,38 +309,73 @@ export default function NewProduct() {
             />
           </div>
 
-          <div>
-            <label className={labelClass}>Foto Principal</label>
-            <div className="flex items-center justify-center w-full">
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-700 border-dashed rounded-lg cursor-pointer bg-neutral-800 hover:bg-neutral-700 transition relative overflow-hidden">
-                
-                {imageFile ? (
-                   <div className="absolute inset-0 flex items-center justify-center bg-green-900/50">
-                      <p className="text-green-300 font-medium truncate px-4">{imageFile.name}</p>
-                   </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <PhotoIcon className="w-8 h-8 text-gray-500 mb-2" />
-                    <p className="text-sm text-gray-500">
-                      Clique para enviar imagem
-                    </p>
-                  </div>
-                )}
-                
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  className="hidden" 
-                  onChange={e => setImageFile(e.target.files?.[0] || null)}
-                />
-              </label>
+          <div className="space-y-4 pt-4 border-t border-neutral-800">
+            {/* FOTO PRINCIPAL */}
+            <div>
+                <label className={labelClass}>Foto Principal (Capa)</label>
+                <div className="flex items-center justify-center w-full">
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-700 border-dashed rounded-lg cursor-pointer bg-neutral-800 hover:bg-neutral-700 transition relative overflow-hidden">
+                    
+                    {imageFile ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-green-900/50">
+                        <p className="text-green-300 font-medium truncate px-4">{imageFile.name}</p>
+                    </div>
+                    ) : (
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <PhotoIcon className="w-8 h-8 text-gray-500 mb-2" />
+                        <p className="text-sm text-gray-500">
+                        Clique para enviar imagem principal
+                        </p>
+                    </div>
+                    )}
+                    
+                    <input 
+                    type="file" 
+                    accept="image/*"
+                    className="hidden" 
+                    onChange={e => setImageFile(e.target.files?.[0] || null)}
+                    />
+                </label>
+                </div>
+            </div>
+
+            {/* FOTOS EXTRAS */}
+            <div>
+                <label className={labelClass}>Fotos Extras (Opcional - Até 4)</label>
+                <div className="flex items-center justify-center w-full">
+                <label className="flex flex-col items-center justify-center w-full h-24 border border-neutral-700 border-dashed rounded-lg cursor-pointer bg-neutral-800/50 hover:bg-neutral-700 transition relative overflow-hidden">
+                    
+                    {galleryFiles.length > 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center bg-yellow-900/20">
+                        <p className="text-yellow-500 font-medium truncate px-4">
+                            {galleryFiles.length} foto(s) selecionada(s)
+                        </p>
+                    </div>
+                    ) : (
+                    <div className="flex flex-col items-center justify-center">
+                        <span className="text-2xl text-gray-500 mb-1">+</span>
+                        <p className="text-xs text-gray-500">
+                        Adicionar fotos complementares
+                        </p>
+                    </div>
+                    )}
+                    
+                    <input 
+                    type="file" 
+                    accept="image/*"
+                    multiple
+                    className="hidden" 
+                    onChange={handleGallerySelect}
+                    />
+                </label>
+                </div>
             </div>
           </div>
 
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-white text-black py-4 rounded-lg font-bold hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white text-black py-4 rounded-lg font-bold hover:bg-yellow-500 transition disabled:opacity-50 disabled:cursor-not-allowed mt-6"
           >
             {loading ? 'Salvando...' : 'Cadastrar Produto'}
           </button>
