@@ -14,7 +14,8 @@ export default function Navbar() {
     <>
     <CartSidebar isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-    <header className="sticky top-0 w-full z-50 bg-white/85 backdrop-blur-2xl border-b border-white/60 shadow-lg transition-all duration-500">
+    {/* HEADER ESCURO: bg-black/80 e borda sutil */}
+    <header className="sticky top-0 w-full z-50 bg-black/80 backdrop-blur-2xl border-b border-white/10 shadow-lg transition-all duration-500">
       
       <div className="max-w-7xl mx-auto px-4 md:px-8">
         
@@ -22,30 +23,31 @@ export default function Navbar() {
           
           {/* Logo e Nome */}
           <Link href="/" className="flex items-center gap-4 group">
-            <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-gold-300 shadow-lg bg-white group-hover:scale-105 transition-transform duration-500">
+            <div className="relative w-10 h-10 md:w-14 md:h-14 rounded-full overflow-hidden border-2 border-gold-500 shadow-lg bg-black group-hover:scale-105 transition-transform duration-500">
               <Image src="/bg-joias.png" alt="Logo EG" fill className="object-cover" />
             </div>
             <div className="text-left flex flex-col justify-center">
-              <h1 className="text-lg md:text-2xl font-bold text-gray-900 tracking-widest group-hover:text-gold-600 transition-colors font-serif">
+              {/* Texto Branco */}
+              <h1 className="text-lg md:text-2xl font-bold text-white tracking-widest group-hover:text-gold-400 transition-colors font-serif">
                 EG EMPÓRIO <span className="text-gold-500">JOIAS</span>
               </h1>
-              <p className="hidden md:block text-[10px] text-gray-500 uppercase tracking-[0.25em] font-medium mt-0.5">
+              <p className="hidden md:block text-[10px] text-gray-400 uppercase tracking-[0.25em] font-medium mt-0.5">
                 Elegância em cada detalhe
               </p>
             </div>
           </Link>
 
-          {/* Menu Desktop */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-700 tracking-wide">
-            <Link href="/" className="hover:text-gold-600 hover:scale-105 transition-all">INÍCIO</Link>
-            <Link href="/colecoes" className="hover:text-gold-600 hover:scale-105 transition-all">COLEÇÕES</Link>
-            <Link href="/sobre" className="hover:text-gold-600 hover:scale-105 transition-all">SOBRE NÓS</Link>
+          {/* Menu Desktop (Texto Claro) */}
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-300 tracking-wide">
+            <Link href="/" className="hover:text-gold-400 hover:scale-105 transition-all">INÍCIO</Link>
+            <Link href="/colecoes" className="hover:text-gold-400 hover:scale-105 transition-all">COLEÇÕES</Link>
+            <Link href="/sobre" className="hover:text-gold-400 hover:scale-105 transition-all">SOBRE NÓS</Link>
             
-            <div className="h-6 w-[1px] bg-gray-300 mx-2"></div>
+            <div className="h-6 w-[1px] bg-white/20 mx-2"></div>
 
             {/* Ações */}
             <div className="flex items-center gap-4">
-                <Link href="/login" className="flex items-center gap-2 hover:text-gold-600 transition-colors font-medium">
+                <Link href="/login" className="flex items-center gap-2 hover:text-gold-400 text-gray-300 transition-colors font-medium">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
                   </svg>
@@ -54,7 +56,7 @@ export default function Navbar() {
 
                 <button 
                   onClick={() => setCartOpen(true)}
-                  className="flex items-center gap-2 text-gold-700 font-bold border border-gold-400/30 bg-gold-50/50 px-4 py-2 rounded-full hover:shadow-md transition-all group"
+                  className="flex items-center gap-2 text-gold-400 font-bold border border-gold-500/50 bg-gold-900/10 px-4 py-2 rounded-full hover:shadow-md hover:shadow-gold-500/20 transition-all group"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -64,9 +66,9 @@ export default function Navbar() {
             </div>
           </nav>
 
-          {/* Botão Hambúrguer */}
+          {/* Botão Hambúrguer (Branco) */}
           <button 
-            className="lg:hidden text-gray-800 p-2"
+            className="lg:hidden text-white p-2"
             onClick={() => setMenuOpen(!menuOpen)}
           >
             {menuOpen ? (
@@ -84,7 +86,7 @@ export default function Navbar() {
           <a 
             href="https://wa.me/5511916053292?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20EG%20Emp%C3%B3rio%20Joias%20e%20gostaria%20de%20atendimento." 
             target="_blank" 
-            className="hidden lg:flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-full shadow-lg hover:shadow-green-500/30 transition-all text-xs font-bold uppercase tracking-wide hover:-translate-y-0.5"
+            className="hidden lg:flex items-center gap-2 bg-green-700 hover:bg-green-600 text-white px-5 py-2 rounded-full shadow-lg hover:shadow-green-500/30 transition-all text-xs font-bold uppercase tracking-wide hover:-translate-y-0.5"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-4 h-4">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -93,41 +95,40 @@ export default function Navbar() {
           </a>
         </div>
 
-        {/* MENU MOBILE */}
+        {/* MENU MOBILE ESCURO */}
         {menuOpen && (
-          <div className="lg:hidden bg-white border-t border-gray-100 absolute top-full left-0 right-0 shadow-xl p-4 flex flex-col gap-4 animate-fade-in z-50">
-             <Link href="/" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
-             {/* AQUI ESTAVA O ERRO: href estava como # */}
-             <Link href="/colecoes" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
-             <Link href="/sobre" className="p-3 hover:bg-gold-50 rounded text-gray-800 font-semibold" onClick={() => setMenuOpen(false)}>Sobre Nós</Link>
-             <div className="h-[1px] bg-gray-200"></div>
+          <div className="lg:hidden bg-neutral-900 border-t border-white/10 absolute top-full left-0 right-0 shadow-xl p-4 flex flex-col gap-4 animate-fade-in z-50">
+             <Link href="/" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
+             <Link href="/colecoes" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
+             <Link href="/sobre" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Sobre Nós</Link>
+             <div className="h-[1px] bg-white/10"></div>
              
-             <Link href="/login" className="w-full py-3 bg-gray-900 text-white rounded font-bold uppercase text-xs text-center block" onClick={() => setMenuOpen(false)}>
+             <Link href="/login" className="w-full py-3 bg-white text-black rounded font-bold uppercase text-xs text-center block" onClick={() => setMenuOpen(false)}>
                 Entrar
              </Link>
 
-             <a href="https://wa.me/5511916053292?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20EG%20Emp%C3%B3rio%20Joias%20e%20gostaria%20de%20atendimento." className="w-full py-3 bg-green-600 text-white rounded font-bold uppercase text-xs flex justify-center items-center gap-2">
+             <a href="https://wa.me/5511916053292?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20EG%20Emp%C3%B3rio%20Joias%20e%20gostaria%20de%20atendimento." className="w-full py-3 bg-green-700 text-white rounded font-bold uppercase text-xs flex justify-center items-center gap-2">
                 <span>WhatsApp</span>
              </a>
           </div>
         )}
       </div>
 
-      {/* --- UPGRADE DA BARRA SUPERIOR (MODERNA & VISÍVEL) --- */}
-      <div className="w-full bg-gradient-to-r from-gray-50 via-white to-gray-50 border-t border-gray-100 py-3 relative overflow-hidden">
+      {/* --- UPGRADE DA BARRA SUPERIOR (PRETA COM DOURADO) --- */}
+      <div className="w-full bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-t border-white/5 py-3 relative overflow-hidden">
           {/* Linha Decorativa Dourada Sutil */}
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-50"></div>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50"></div>
           
-          {/* TEXTO AJUSTADO: text-gray-900 e font-bold */}
-          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-[10px] md:text-xs font-serif tracking-[0.2em] text-gray-900 font-bold uppercase">
-              <span className="flex items-center gap-2 hover:text-gold-600 transition-colors cursor-default">
+          {/* TEXTO AJUSTADO: text-gray-300 */}
+          <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-[10px] md:text-xs font-serif tracking-[0.2em] text-gray-300 font-bold uppercase">
+              <span className="flex items-center gap-2 hover:text-gold-400 transition-colors cursor-default">
                  <span className="text-yellow-500 text-sm">✦</span> Ouro 18k
               </span>
-              <span className="flex items-center gap-2 hover:text-gold-600 transition-colors cursor-default">
-                 <span className="text-gray-400 text-sm">✦</span> Prata 925
+              <span className="flex items-center gap-2 hover:text-gold-400 transition-colors cursor-default">
+                 <span className="text-gray-500 text-sm">✦</span> Prata 925
               </span>
-              <span className="flex items-center gap-2 hover:text-gold-600 transition-colors cursor-default">
-                 <span className="text-gray-400 text-sm">✦</span> Ródio Branco
+              <span className="flex items-center gap-2 hover:text-gold-400 transition-colors cursor-default">
+                 <span className="text-gray-500 text-sm">✦</span> Ródio Branco
               </span>
           </div>
       </div>

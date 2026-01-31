@@ -46,7 +46,6 @@ export default function AdminDashboard() {
     fetchData();
   }
 
-  // Lógica de Filtro de Vendas
   const filteredOrders = orders.filter(order => {
     const statusMatch = filterStatus === 'todos' ? true : order.status === filterStatus;
     const dateMatch = filterDate ? order.created_at.startsWith(filterDate) : true;
@@ -54,38 +53,38 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto bg-[#f8f5f2]">
+    <div className="min-h-screen pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto bg-neutral-950 text-gray-100">
       
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-serif text-gray-800">Painel Administrativo</h1>
+        <h1 className="text-3xl font-serif text-white">Painel Administrativo</h1>
         {activeTab === 'estoque' && (
-          <Link href="/admin/novo" className="bg-black text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-gray-800 transition shadow-lg">
+          <Link href="/admin/novo" className="bg-yellow-500 text-black px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-yellow-400 transition shadow-lg font-bold">
             <Icons.Plus /> Novo Produto
           </Link>
         )}
       </div>
 
       {/* Navegação de Abas */}
-      <div className="flex gap-6 mb-8 border-b border-gray-300">
+      <div className="flex gap-6 mb-8 border-b border-neutral-800">
         <button 
           onClick={() => setActiveTab('estoque')}
-          className={`pb-3 px-2 font-medium transition text-lg ${activeTab === 'estoque' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+          className={`pb-3 px-2 font-medium transition text-lg ${activeTab === 'estoque' ? 'border-b-2 border-yellow-500 text-yellow-500' : 'text-gray-500 hover:text-white'}`}
         >
           Gestão de Estoque
         </button>
         <button 
           onClick={() => setActiveTab('vendas')}
-          className={`pb-3 px-2 font-medium transition text-lg ${activeTab === 'vendas' ? 'border-b-2 border-black text-black' : 'text-gray-500 hover:text-black'}`}
+          className={`pb-3 px-2 font-medium transition text-lg ${activeTab === 'vendas' ? 'border-b-2 border-yellow-500 text-yellow-500' : 'text-gray-500 hover:text-white'}`}
         >
           Controle de Vendas
         </button>
       </div>
 
-      {/* CONTEÚDO: ESTOQUE */}
+      {/* CONTEÚDO: ESTOQUE (DARK) */}
       {activeTab === 'estoque' && (
-        <div className="bg-white rounded-xl shadow p-6 overflow-x-auto">
+        <div className="bg-neutral-900 rounded-xl shadow p-6 overflow-x-auto border border-neutral-800">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold">
+            <thead className="bg-neutral-800 text-gray-400 uppercase text-xs font-bold">
               <tr>
                 <th className="p-4">Foto</th>
                 <th className="p-4">Produto</th>
@@ -94,44 +93,43 @@ export default function AdminDashboard() {
                 <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-neutral-800">
               {products.map(p => (
-                <tr key={p.id} className="hover:bg-gray-50 transition">
+                <tr key={p.id} className="hover:bg-neutral-800/50 transition">
                   <td className="p-4">
-                    <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden">
+                    <div className="w-12 h-12 bg-neutral-800 rounded overflow-hidden">
                        <img src={p.images?.[0] || '/placeholder.jpg'} alt="" className="w-full h-full object-cover" />
                     </div>
                   </td>
-                  <td className="p-4 font-medium text-gray-900">
+                  <td className="p-4 font-medium text-white">
                     {p.title}
-                    {p.highlight && <span className="ml-2 bg-yellow-100 text-yellow-800 text-[10px] px-2 py-0.5 rounded-full font-bold border border-yellow-200">DESTAQUE</span>}
+                    {p.highlight && <span className="ml-2 bg-yellow-900/50 text-yellow-500 text-[10px] px-2 py-0.5 rounded-full font-bold border border-yellow-500/30">DESTAQUE</span>}
                   </td>
                   <td className="p-4">
                     {p.sale_price ? (
                       <div>
-                        <span className="text-gray-400 line-through text-xs block">R$ {p.price}</span>
-                        <span className="text-green-600 font-bold">R$ {p.sale_price}</span>
+                        <span className="text-gray-500 line-through text-xs block">R$ {p.price}</span>
+                        <span className="text-green-400 font-bold">R$ {p.sale_price}</span>
                       </div>
                     ) : (
-                      <span>R$ {p.price}</span>
+                      <span className="text-gray-300">R$ {p.price}</span>
                     )}
                   </td>
                   <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>
                       {p.stock} un
                     </span>
                   </td>
                   <td className="p-4 flex justify-end gap-2">
-                    {/* BOTÃO EDITAR CORRIGIDO AQUI PARA LINK */}
                     <Link 
                         href={`/admin/editar/${p.id}`} 
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded transition flex items-center justify-center" 
+                        className="p-2 text-blue-400 hover:bg-blue-900/20 rounded transition flex items-center justify-center" 
                         title="Editar"
                     >
                         <Icons.Edit />
                     </Link>
                     
-                    <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-600 hover:bg-red-50 rounded transition" title="Excluir"><Icons.Trash /></button>
+                    <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-400 hover:bg-red-900/20 rounded transition" title="Excluir"><Icons.Trash /></button>
                   </td>
                 </tr>
               ))}
@@ -140,18 +138,17 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* CONTEÚDO: VENDAS */}
+      {/* CONTEÚDO: VENDAS (DARK) */}
       {activeTab === 'vendas' && (
-        <div className="bg-white rounded-xl shadow p-6">
-          {/* Barra de Filtros */}
-          <div className="flex flex-wrap gap-4 mb-6 bg-gray-50 p-4 rounded-lg border border-gray-100">
+        <div className="bg-neutral-900 rounded-xl shadow p-6 border border-neutral-800">
+          <div className="flex flex-wrap gap-4 mb-6 bg-neutral-800 p-4 rounded-lg border border-neutral-700">
              <div className="flex flex-col">
-                <label className="text-xs font-bold text-gray-500 mb-1">Data do Pedido</label>
-                <input type="date" className="p-2 border rounded text-sm" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+                <label className="text-xs font-bold text-gray-400 mb-1">Data do Pedido</label>
+                <input type="date" className="p-2 border border-neutral-600 bg-neutral-700 text-white rounded text-sm" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
              </div>
              <div className="flex flex-col">
-                <label className="text-xs font-bold text-gray-500 mb-1">Status</label>
-                <select className="p-2 border rounded text-sm min-w-[150px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+                <label className="text-xs font-bold text-gray-400 mb-1">Status</label>
+                <select className="p-2 border border-neutral-600 bg-neutral-700 text-white rounded text-sm min-w-[150px]" value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
                    <option value="todos">Todos</option>
                    <option value="pending">Pendente</option>
                    <option value="paid">Pago</option>
@@ -162,7 +159,7 @@ export default function AdminDashboard() {
           </div>
 
           <table className="w-full text-left">
-            <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-bold">
+            <thead className="bg-neutral-800 text-gray-400 uppercase text-xs font-bold">
               <tr>
                 <th className="p-4">ID</th>
                 <th className="p-4">Data</th>
@@ -172,30 +169,30 @@ export default function AdminDashboard() {
                 <th className="p-4 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-neutral-800">
               {filteredOrders.length === 0 ? (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-500">Nenhum pedido encontrado com esses filtros.</td></tr>
+                <tr><td colSpan={6} className="p-8 text-center text-gray-500">Nenhum pedido encontrado.</td></tr>
               ) : (
                 filteredOrders.map(order => (
-                  <tr key={order.id} className="hover:bg-gray-50 transition">
+                  <tr key={order.id} className="hover:bg-neutral-800/50 transition">
                     <td className="p-4 text-gray-500">#{order.id}</td>
-                    <td className="p-4">{new Date(order.created_at).toLocaleDateString()}</td>
-                    <td className="p-4 font-medium">{order.customer_name}</td>
+                    <td className="p-4 text-gray-300">{new Date(order.created_at).toLocaleDateString()}</td>
+                    <td className="p-4 font-medium text-white">{order.customer_name}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                        order.status === 'delivered' ? 'bg-green-100 text-green-700' :
-                        order.status === 'paid' ? 'bg-blue-100 text-blue-700' :
-                        'bg-yellow-100 text-yellow-700'
+                        order.status === 'delivered' ? 'bg-green-900/30 text-green-400' :
+                        order.status === 'paid' ? 'bg-blue-900/30 text-blue-400' :
+                        'bg-yellow-900/30 text-yellow-500'
                       }`}>
                         {order.status === 'pending' ? 'Pendente' : order.status === 'delivered' ? 'Entregue' : order.status}
                       </span>
                     </td>
-                    <td className="p-4 font-bold">R$ {order.total_amount}</td>
+                    <td className="p-4 font-bold text-white">R$ {order.total_amount}</td>
                     <td className="p-4 text-right">
                       {order.status !== 'delivered' && (
                         <button 
                           onClick={() => handleMarkDelivered(order.id)}
-                          className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700 transition shadow"
+                          className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-500 transition shadow"
                         >
                           Marcar Entregue
                         </button>

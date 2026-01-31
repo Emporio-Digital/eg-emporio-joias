@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Image from "next/image";
 import { CartProvider } from "@/context/CartContext"; 
-import RetentionPopup from "@/components/RetentionPopup"; // <--- Importado
+import RetentionPopup from "@/components/RetentionPopup"; 
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,14 +24,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br">
-      <body className={`${inter.className} bg-white text-gray-800 min-h-screen flex flex-col`}>
+      {/* MUDANÇA: Fundo agora é bg-neutral-950 (Preto Suave) e texto claro */}
+      <body className={`${inter.className} bg-neutral-950 text-gray-200 min-h-screen flex flex-col`}>
         
-        {/* Envolvendo tudo com o Provider para o carrinho funcionar */}
         <CartProvider>
             
             {/* Marca D'água */}
             <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden">
-                <div className="relative w-[90vw] h-[90vh] opacity-[0.15]"> 
+                {/* MUDANÇA: Opacidade reduzida para 0.10 para ficar sutil no fundo preto */}
+                <div className="relative w-[90vw] h-[90vh] opacity-[0.10]"> 
                     <Image 
                         src="/bg-joias.png" 
                         alt="Marca D'água" 
@@ -49,7 +50,6 @@ export default function RootLayout({
                 <Footer />
             </div>
 
-            {/* Pop-up de Retenção (Marketing) */}
             <RetentionPopup />
 
         </CartProvider>

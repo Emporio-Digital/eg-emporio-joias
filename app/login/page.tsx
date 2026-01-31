@@ -5,18 +5,18 @@ export default function Login() {
   return (
     <div className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
       
-      {/* Container de Vidro Centralizado */}
-      <div className="w-full max-w-md bg-white/60 backdrop-blur-xl border border-white/80 rounded-3xl shadow-2xl p-8 md:p-10 animate-fade-in relative overflow-hidden">
+      {/* Container de Vidro Escuro Centralizado */}
+      <div className="w-full max-w-md bg-neutral-900/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.5)] p-8 md:p-10 animate-fade-in relative overflow-hidden">
         
-        {/* Efeito de brilho no fundo (Opcional) */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-gold-400 to-transparent opacity-50"></div>
+        {/* Efeito de brilho no topo */}
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent"></div>
 
         <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-16 h-16 relative mb-4">
-                <Image src="/bg-joias.png" alt="Logo" fill className="object-contain" />
+            <div className="w-16 h-16 relative mb-4 opacity-90">
+                <Image src="/bg-joias.png" alt="Logo" fill className="object-contain drop-shadow-[0_0_15px_rgba(255,215,0,0.3)]" />
             </div>
-            <h1 className="text-2xl font-serif font-bold text-gray-800 tracking-wide">Bem-vindo de volta</h1>
-            <p className="text-xs text-gray-500 mt-2 uppercase tracking-wider">Acesse sua conta exclusiva</p>
+            <h1 className="text-2xl font-serif font-bold text-white tracking-wide">Bem-vindo de volta</h1>
+            <p className="text-xs text-gray-400 mt-2 uppercase tracking-wider">Acesse sua conta exclusiva</p>
         </div>
 
         {/* Formulário (Apenas Visual) */}
@@ -27,7 +27,7 @@ export default function Login() {
                 <input 
                     type="email" 
                     placeholder="Seu e-mail" 
-                    className="w-full bg-white/50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold-500 focus:bg-white transition-all placeholder:text-gray-400 text-gray-800"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
                 />
             </div>
 
@@ -36,25 +36,25 @@ export default function Login() {
                 <input 
                     type="password" 
                     placeholder="Sua senha" 
-                    className="w-full bg-white/50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-gold-500 focus:bg-white transition-all placeholder:text-gray-400 text-gray-800"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
                 />
-                <a href="#" className="absolute right-0 -bottom-5 text-[10px] text-gray-500 hover:text-gold-600 font-medium">Esqueceu a senha?</a>
+                <a href="#" className="absolute right-0 -bottom-5 text-[10px] text-gray-500 hover:text-yellow-500 font-medium transition-colors">Esqueceu a senha?</a>
             </div>
 
-            {/* Botão Entrar */}
-            <button className="w-full mt-2 bg-gray-900 text-white py-3.5 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-gold-600 hover:shadow-lg hover:shadow-gold-500/20 transition-all transform hover:-translate-y-0.5">
+            {/* Botão Entrar: Branco para contraste máximo no escuro */}
+            <button className="w-full mt-4 bg-white text-black py-3.5 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-yellow-500 hover:text-white hover:shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all transform hover:-translate-y-0.5">
                 Entrar
             </button>
         </form>
 
         <div className="mt-8 flex items-center gap-4">
-            <div className="h-[1px] bg-gray-300 flex-1"></div>
-            <span className="text-[10px] text-gray-400 uppercase">Ou continue com</span>
-            <div className="h-[1px] bg-gray-300 flex-1"></div>
+            <div className="h-[1px] bg-white/10 flex-1"></div>
+            <span className="text-[10px] text-gray-500 uppercase">Ou continue com</span>
+            <div className="h-[1px] bg-white/10 flex-1"></div>
         </div>
 
-        {/* Botão Google (Visual) */}
-        <button className="w-full mt-6 bg-white border border-gray-200 text-gray-600 py-3 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-gray-50 transition-all">
+        {/* Botão Google Dark */}
+        <button className="w-full mt-6 bg-neutral-800 border border-white/10 text-gray-300 py-3 rounded-xl font-medium text-xs flex items-center justify-center gap-2 hover:bg-neutral-700 hover:text-white transition-all">
             <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                 <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -64,10 +64,9 @@ export default function Login() {
             Entrar com Google
         </button>
 
-        {/* Link Criar Conta (CORRIGIDO AQUI) */}
         <div className="mt-8 text-center">
             <p className="text-xs text-gray-500">
-                Ainda não tem conta? <Link href="/cadastro" className="text-gold-600 font-bold hover:underline">Cadastre-se</Link>
+                Ainda não tem conta? <Link href="/cadastro" className="text-yellow-500 font-bold hover:underline">Cadastre-se</Link>
             </p>
         </div>
 
