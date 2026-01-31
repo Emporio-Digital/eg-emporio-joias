@@ -287,12 +287,13 @@ export default function Checkout() {
                             <div className="flex-1">
                                 <p className="text-xs font-bold text-gray-200 line-clamp-2">{item.title}</p>
                                 <p className="text-[10px] text-gray-500">Qtd: {item.quantity}</p>
-                                {/* EXIBE O TAMANHO SE HOUVER */}
-                                {item.size && (
-                                   <p className="text-[10px] text-yellow-500 font-bold border border-yellow-500/30 bg-yellow-900/10 px-1 rounded w-fit mt-1">{item.size}</p>
+                                {/* EXIBE O TAMANHO SE HOUVER - CORREÇÃO DE TIPO (SIZE) */}
+                                {(item as any).size && (
+                                   <p className="text-[10px] text-yellow-500 font-bold border border-yellow-500/30 bg-yellow-900/10 px-1 rounded w-fit mt-1">{(item as any).size}</p>
                                 )}
                                 <p className="text-xs font-bold text-white mt-1">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.sale_price || item.price)}
+                                    {/* CORREÇÃO DE TIPO (SALE_PRICE) AQUI */}
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((item as any).sale_price || item.price)}
                                 </p>
                             </div>
                         </div>
