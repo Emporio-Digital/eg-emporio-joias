@@ -14,7 +14,6 @@ function ArrowLeftIcon({ className }: { className?: string }) {
   );
 }
 
-// OPÇÕES DE TAMANHO
 const SIZE_OPTIONS: Record<string, string[]> = {
   aneis: ['10', '12', '14', '16', '18', '20', '22', '24', '26', '28'],
   colares: ['40cm', '45cm', '50cm', '60cm', '70cm'],
@@ -35,7 +34,8 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
   const [category, setCategory] = useState('aneis');
   const [description, setDescription] = useState('');
   const [stock, setStock] = useState('1');
-  
+  const [displayOrder, setDisplayOrder] = useState('0'); // Nova ordem
+
   // Imagem Principal
   const [currentImage, setCurrentImage] = useState(''); 
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
@@ -47,7 +47,6 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
   const [isHighlight, setIsHighlight] = useState(false);
   const [discountPercent, setDiscountPercent] = useState('');
 
-  // Estado de tamanhos
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   
   useEffect(() => {
@@ -70,8 +69,8 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
         setCategory(data.category);
         setDescription(data.description || '');
         setStock(data.stock.toString());
+        setDisplayOrder(data.display_order ? data.display_order.toString() : '0');
         
-        // Pega imagem principal e galeria
         setCurrentImage(data.images?.[0] || '');
         setCurrentGallery(data.gallery || []);
 
@@ -118,13 +117,13 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
 
       const numericPrice = parseFloat(price);
       const numericDiscount = parseFloat(discountPercent);
+      const numericOrder = parseInt(displayOrder) || 0;
       
       let salePrice = null;
       if (!isNaN(numericDiscount) && numericDiscount > 0) {
         salePrice = numericPrice - (numericPrice * (numericDiscount / 100));
       }
 
-      // 1. Imagem Principal (Se alterada)
       let imageUrl = currentImage;
       if (newImageFile) {
           const fileExt = newImageFile.name.split('.').pop();
@@ -143,7 +142,6 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
           imageUrl = publicUrl;
       }
 
-      // 2. Imagens Galeria (Novas)
       let updatedGallery = [...currentGallery];
       if (newGalleryFiles.length > 0) {
           for (let i = 0; i < newGalleryFiles.length; i++) {
@@ -174,9 +172,10 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             description,
             category,
             stock: parseInt(stock),
-            images: [imageUrl], // Principal
-            gallery: updatedGallery, // Extras
-            sizes: selectedSizes
+            images: [imageUrl], 
+            gallery: updatedGallery,
+            sizes: selectedSizes,
+            display_order: numericOrder
         })
         .eq('id', productId);
 
@@ -247,7 +246,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 items-end">
+          <div className="grid grid-cols-3 gap-4 items-end">
              <div>
                 <label className={labelClass}>Estoque Total</label>
                 <input 
@@ -255,6 +254,16 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
                     type="number" 
                     value={stock}
                     onChange={e => setStock(e.target.value)}
+                    className={inputClass}
+                />
+             </div>
+             
+             <div>
+                <label className={labelClass}>Ordem Exibição</label>
+                <input 
+                    type="number" 
+                    value={displayOrder}
+                    onChange={e => setDisplayOrder(e.target.value)}
                     className={inputClass}
                 />
              </div>
@@ -267,7 +276,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
                         onChange={e => setIsHighlight(e.target.checked)}
                         className="accent-yellow-500 w-5 h-5"
                     />
-                    <span className="text-sm font-medium text-gray-300 ml-3">Destaque na Home</span>
+                    <span className="text-sm font-medium text-gray-300 ml-3">Destaque</span>
                 </label>
              </div>
           </div>
@@ -278,7 +287,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
               value={category}
               onChange={e => {
                   setCategory(e.target.value);
-                  setSelectedSizes([]); // Limpa se mudar categoria
+                  setSelectedSizes([]); 
               }}
               className={inputClass}
             >
@@ -289,7 +298,6 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             </select>
           </div>
 
-          {/* SELEÇÃO DE TAMANHOS */}
           <div>
              <label className={labelClass}>Tamanhos Disponíveis</label>
              <div className="flex flex-wrap gap-2 mt-2">
@@ -320,11 +328,10 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
             />
           </div>
 
-          {/* IMAGENS */}
+          {/* IMAGENS (MANTIDO) */}
           <div className="space-y-4 pt-4 border-t border-neutral-800">
             <h3 className="text-white font-bold text-lg">Gerenciar Imagens</h3>
 
-            {/* Principal */}
             <div>
                 <label className={labelClass}>Foto Principal</label>
                 <div className="flex items-start gap-4">
@@ -346,11 +353,8 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
                 </div>
             </div>
 
-            {/* Galeria */}
             <div>
                 <label className={labelClass}>Galeria de Fotos Extras</label>
-                
-                {/* Lista Atual */}
                 <div className="flex flex-wrap gap-2 mb-3">
                     {currentGallery.map((url, idx) => (
                         <div key={idx} className="relative w-20 h-20 border border-neutral-700 rounded-lg overflow-hidden group">
@@ -367,8 +371,6 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
                         </div>
                     ))}
                 </div>
-
-                {/* Adicionar Mais */}
                 <div className="p-3 bg-neutral-800 rounded-lg border border-neutral-700">
                     <p className="text-xs text-gray-400 mb-2">Adicionar mais à galeria:</p>
                     <input 

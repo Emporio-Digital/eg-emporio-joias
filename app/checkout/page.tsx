@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
@@ -12,44 +11,75 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false); 
   const [orderId, setOrderId] = useState<number | null>(null);
+  // Snapshot do pedido para o WhatsApp não pegar dados vazios
+  const [savedOrder, setSavedOrder] = useState<{items: any[], total: number, freight: number, discount: number} | null>(null);
 
+  // Dados Pessoais
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
+
+  // Dados de Endereço
+  const [cep, setCep] = useState("");
+  const [rua, setRua] = useState("");
+  const [numero, setNumero] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [complemento, setComplemento] = useState("");
   
   const [metodoPagamento, setMetodoPagamento] = useState("pix"); 
   const [freteSelecionado, setFreteSelecionado] = useState("motoboy"); 
 
   const subtotal = total; 
-  const valorFrete = freteSelecionado === 'motoboy' ? 20.00 : 35.00;
+  const valorFrete = freteSelecionado === 'motoboy' ? 25.00 : 35.00;
   const valorDesconto = metodoPagamento === 'pix' ? subtotal * 0.05 : 0;
   const totalFinal = subtotal + valorFrete - valorDesconto;
 
   async function handleFinalizarCompra() {
-    if (!nome || !email || !cpf || !whatsapp) {
-        alert("Por favor, preencha todos os dados pessoais.");
+    const camposFaltando = [];
+    if (!nome) camposFaltando.push("Nome");
+    if (!email) camposFaltando.push("E-mail");
+    if (!cpf) camposFaltando.push("CPF");
+    if (!whatsapp) camposFaltando.push("WhatsApp");
+    if (!cep) camposFaltando.push("CEP");
+    if (!rua) camposFaltando.push("Rua");
+    if (!numero) camposFaltando.push("Número");
+    if (!bairro) camposFaltando.push("Bairro");
+    if (!cidade) camposFaltando.push("Cidade");
+
+    if (items.length === 0) {
+        alert("Seu carrinho está vazio. Adicione itens antes de finalizar.");
         return;
     }
-    if (items.length === 0) {
-        alert("Seu carrinho está vazio.");
+
+    if (camposFaltando.length > 0) {
+        alert(`Por favor, preencha os campos obrigatórios: ${camposFaltando.join(", ")}`);
         return;
     }
 
     setLoading(true);
 
     try {
-        // 1. TENTA RESERVAR O ESTOQUE PRIMEIRO (Atômico via RPC)
+        // 1. BAIXA DE ESTOQUE SEGURA (Atomicidade)
         for (const item of items) {
-            const { error: stockError } = await supabase
+            // Chama a função RPC e espera TRUE ou FALSE
+            const { data: success, error: rpcError } = await supabase
                 .rpc('decrement_stock', { product_id: item.id, quantity: item.quantity });
             
-            if (stockError) {
-                throw new Error(`O produto "${item.title}" acabou de esgotar ou não tem estoque suficiente.`);
+            if (rpcError) {
+                throw new Error(`Erro técnico ao verificar estoque: ${rpcError.message}`);
+            }
+
+            // Se success for false, significa que o banco RECUSOU a venda por falta de estoque
+            if (!success) {
+                throw new Error(`O produto "${item.title}" acabou de esgotar ou a quantidade solicitada não está disponível.`);
             }
         }
 
-        // 2. CRIA O PEDIDO APÓS GARANTIR O ESTOQUE
+        const fullAddress = `${rua}, ${numero} - ${bairro}, ${cidade} - CEP: ${cep} ${complemento ? `(${complemento})` : ''}`;
+
+        // 2. CRIA O PEDIDO
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert([
@@ -58,31 +88,96 @@ export default function Checkout() {
                     customer_email: email,
                     customer_phone: whatsapp,
                     customer_cpf: cpf,
+                    
                     total_amount: totalFinal,
                     status: 'pending', 
                     payment_method: metodoPagamento,
                     shipping_method: freteSelecionado,
-                    items: items 
+                    items: items,
+
+                    address_full: fullAddress,
+
+                    address_zip: cep,
+                    address_street: rua,
+                    address_number: numero,
+                    address_neighborhood: bairro,
+                    address_city: cidade,
+                    address_complement: complemento,
+                    address_state: "" 
                 }
             ])
             .select()
             .single();
 
-        if (orderError) throw orderError;
+        if (orderError) throw new Error("Erro de Banco de Dados: " + orderError.message);
 
+        // 3. SUCESSO
         setOrderId(orderData.id);
+        setSavedOrder({
+            items: [...items], // Salva cópia dos itens
+            total: totalFinal,
+            freight: valorFrete,
+            discount: valorDesconto
+        });
+        
         clearCart();
         setSuccess(true);
 
     } catch (error: any) {
-        console.error(error);
+        console.error("Erro no checkout:", error);
         alert("Não foi possível concluir o pedido: " + error.message);
     } finally {
         setLoading(false);
     }
   }
 
-  // === TELA DE SUCESSO DARK ===
+  // === WHATSAPP CORRIGIDO (Usa savedOrder e \n) ===
+  const gerarLinkWhatsapp = () => {
+    if (!orderId || !savedOrder) return "#";
+
+    const quebra = "\n"; 
+    const traco = "--------------------------------";
+    
+    const listaItens = savedOrder.items.map(i => 
+        `- ${i.quantity}x ${i.title} ${(i as any).size ? `(Tam: ${(i as any).size})` : ''}`
+    ).join(quebra);
+
+    const fmt = (val: number) => val.toFixed(2).replace('.', ',');
+
+    const linhas = [
+        `NOVO PEDIDO REALIZADO`,
+        `Numero do Pedido: #${orderId}`,
+        traco,
+        `DADOS DO CLIENTE`,
+        `Nome: ${nome}`,
+        `CPF: ${cpf}`,
+        traco,
+        `ENTREGA`,
+        `Metodo: ${freteSelecionado === 'motoboy' ? 'Motoboy Express' : 'Correios (PAC/Sedex)'}`,
+        `Endereco: ${rua}, ${numero}`,
+        `Bairro: ${bairro}`,
+        `Cidade: ${cidade}`,
+        `CEP: ${cep}`,
+        complemento ? `Comp: ${complemento}` : '',
+        traco,
+        `ITENS DO PEDIDO`,
+        listaItens,
+        traco,
+        `RESUMO DE VALORES`,
+        `Subtotal: R$ ${fmt(savedOrder.total - savedOrder.freight + savedOrder.discount)}`,
+        `Frete: R$ ${fmt(savedOrder.freight)}`,
+        `Desconto: - R$ ${fmt(savedOrder.discount)}`,
+        `TOTAL FINAL: R$ ${fmt(savedOrder.total)}`,
+        traco,
+        `Aguardo a chave Pix para pagamento.`
+    ];
+
+    // Remove linhas vazias (caso não tenha complemento) e junta
+    const mensagem = linhas.filter(l => l !== '').join(quebra);
+
+    return `https://wa.me/5511916053292?text=${encodeURIComponent(mensagem)}`;
+  };
+
   if (success) {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center p-4 animate-fade-in bg-neutral-950">
@@ -94,40 +189,56 @@ export default function Checkout() {
                     </svg>
                 </div>
 
-                <h1 className="text-3xl font-serif font-bold text-white mb-2">Pedido Confirmado!</h1>
-                <p className="text-gray-400 mb-8">Obrigado, {nome}. Seu pedido <strong className="text-white">#{orderId}</strong> foi recebido com sucesso.</p>
+                <h1 className="text-3xl font-serif font-bold text-white mb-2">Pedido Criado!</h1>
+                <p className="text-gray-400 mb-6">Obrigado, {nome}. O pedido <strong className="text-white">#{orderId}</strong> foi registrado.</p>
 
-                <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-xl p-6 mb-8">
-                    <p className="text-sm text-yellow-500 font-bold mb-2">Próximos Passos:</p>
-                    <p className="text-xs text-gray-300">
-                        Enviamos os detalhes do pagamento (Código Pix) para seu e-mail: <strong className="text-white">{email}</strong>.
-                        <br />Assim que confirmado, iniciaremos o envio.
-                    </p>
-                </div>
+                {metodoPagamento === 'pix' ? (
+                    <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-6 mb-8 animate-pulse">
+                        <p className="text-sm text-green-400 font-bold mb-3 uppercase tracking-wider">⚠️ Última Etapa</p>
+                        <p className="text-gray-300 mb-6 text-sm">
+                            Para validar os <strong>5% de desconto</strong> e liberar o envio, envie o pedido para nosso WhatsApp agora.
+                        </p>
+                        <a 
+                            href={gerarLinkWhatsapp()}
+                            target="_blank"
+                            className="inline-flex items-center gap-3 bg-green-600 text-white px-8 py-4 rounded-xl font-bold uppercase tracking-widest text-sm hover:bg-green-500 transition-all shadow-lg hover:-translate-y-1 w-full md:w-auto justify-center"
+                        >
+                            Confirmar no WhatsApp
+                        </a>
+                    </div>
+                ) : (
+                    <div className="bg-blue-900/20 border border-blue-500/30 rounded-xl p-6 mb-8">
+                        <p className="text-sm text-blue-400 font-bold mb-2">Pagamento Mercado Pago:</p>
+                        <p className="text-xs text-gray-300">
+                            Em breve você será redirecionado para concluir o pagamento com segurança.
+                            <br/>Se não for redirecionado, verifique seu e-mail: <strong className="text-white">{email}</strong>.
+                        </p>
+                    </div>
+                )}
 
-                {/* Marketing */}
-                <div className="relative overflow-hidden rounded-2xl bg-black text-white p-8 md:p-10 border border-white/10 shadow-xl group cursor-default">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600 rounded-full blur-[100px] opacity-20 group-hover:opacity-30 transition-opacity"></div>
+                {/* === MARKETING EG EMPÓRIO DIGITAL === */}
+                <div className="relative overflow-hidden rounded-2xl bg-black border border-white/10 p-6 shadow-2xl mt-8 group cursor-default text-left">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/20 rounded-full blur-[50px] group-hover:bg-blue-600/30 transition-all duration-500"></div>
                     
-                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
-                        <div className="text-left flex-1">
-                            <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Parceiro Oficial</h3>
-                            <h2 className="text-2xl font-bold mb-2">Gostou deste site?</h2>
-                            <p className="text-gray-400 text-sm mb-4 leading-relaxed">
-                                A <strong className="text-white">EG Empório Digital</strong> cria experiências digitais de alto padrão, como esta loja. Landing Pages, E-commerces e Sistemas Web.
+                    <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4">
+                        <div className="flex-1">
+                            <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Parceiro Oficial</h3>
+                            <h2 className="text-lg font-serif text-white mb-2 leading-tight">Gostou da experiência desta loja?</h2>
+                            <p className="text-gray-400 text-xs mb-4 leading-relaxed">
+                                A <strong className="text-white">EG Empório Digital</strong> desenvolve e-commerces de luxo, landing pages e sistemas sob medida para o seu negócio.
                             </p>
                             <a 
                                 href="https://egemporiodigital.com.br" 
                                 target="_blank"
-                                className="inline-flex items-center gap-2 bg-white text-gray-900 px-6 py-3 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-blue-50 transition-all shadow-lg hover:-translate-y-1"
+                                className="inline-flex items-center gap-2 text-xs font-bold text-white border border-white/20 px-4 py-2 rounded-lg hover:bg-white hover:text-black transition-all transform hover:-translate-y-1"
                             >
-                                Conhecer Serviços
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                Conhecer a Agência
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
                                 </svg>
                             </a>
                         </div>
-                        <div className="text-6xl md:text-8xl opacity-50 grayscale group-hover:grayscale-0 transition-all duration-500">
+                        <div className="hidden sm:block text-5xl opacity-30 grayscale group-hover:grayscale-0 transition-all duration-500">
                             🚀
                         </div>
                     </div>
@@ -138,18 +249,17 @@ export default function Checkout() {
                         Voltar para a Loja
                     </Link>
                 </div>
-
             </div>
         </div>
     );
   }
 
-  // === CHECKOUT NORMAL (DARK) ===
+  // === FORMULÁRIO (MANTIDO IDÊNTICO) ===
   return (
     <div className="w-full min-h-screen pt-6 pb-20 px-4 flex justify-center bg-neutral-950">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-8">
         
-        {/* === COLUNA ESQUERDA: FORMULÁRIOS === */}
+        {/* === COLUNA ESQUERDA: DADOS === */}
         <div className="flex-1 flex flex-col gap-6">
             
             {/* 1. Identificação */}
@@ -174,23 +284,26 @@ export default function Checkout() {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <input type="text" placeholder="CEP *" className="input-padrao md:col-span-1" />
+                    <input 
+                        type="text" placeholder="CEP *" className="input-padrao md:col-span-1" 
+                        value={cep} onChange={e => setCep(e.target.value)}
+                    />
                     <div className="flex items-center text-xs text-yellow-500 font-bold cursor-pointer hover:underline">
                         Não sei meu CEP
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <input type="text" placeholder="Rua / Avenida *" className="input-padrao w-full" />
-                    <input type="text" placeholder="Número *" className="input-padrao w-full" />
-                    <input type="text" placeholder="Bairro *" className="input-padrao w-full" />
-                    <input type="text" placeholder="Cidade *" className="input-padrao w-full" />
+                    <input type="text" placeholder="Rua / Avenida *" className="input-padrao w-full" value={rua} onChange={e => setRua(e.target.value)} />
+                    <input type="text" placeholder="Número *" className="input-padrao w-full" value={numero} onChange={e => setNumero(e.target.value)} />
+                    <input type="text" placeholder="Bairro *" className="input-padrao w-full" value={bairro} onChange={e => setBairro(e.target.value)} />
+                    <input type="text" placeholder="Cidade *" className="input-padrao w-full" value={cidade} onChange={e => setCidade(e.target.value)} />
                 </div>
-                <input type="text" placeholder="Complemento (Apto, Bloco...)" className="input-padrao w-full" />
+                <input type="text" placeholder="Complemento (Apto, Bloco...)" className="input-padrao w-full" value={complemento} onChange={e => setComplemento(e.target.value)} />
 
                 {/* Opções de Frete */}
                 <div className="mt-6 flex flex-col gap-3">
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Opções de Envio</h3>
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Método de Envio</h3>
                     
                     <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${freteSelecionado === 'motoboy' ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 hover:border-yellow-500/50 bg-black/20'}`}>
                         <div className="flex items-center gap-3">
@@ -206,7 +319,6 @@ export default function Checkout() {
                                 <span className="text-[10px] text-green-400 font-bold">Chega Hoje (se pedido até 14h)</span>
                             </div>
                         </div>
-                        <span className="text-sm font-bold text-white">R$ 20,00</span>
                     </label>
 
                     <label className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer transition-all ${freteSelecionado === 'correios' ? 'border-yellow-500 bg-yellow-900/20' : 'border-white/10 hover:border-yellow-500/50 bg-black/20'}`}>
@@ -223,7 +335,6 @@ export default function Checkout() {
                                 <span className="text-[10px] text-gray-500">3 a 5 dias úteis</span>
                             </div>
                         </div>
-                        <span className="text-sm font-bold text-white">R$ 35,00</span>
                     </label>
                 </div>
             </section>
@@ -234,39 +345,38 @@ export default function Checkout() {
                     <div className="bg-yellow-900/40 text-yellow-500 border border-yellow-500/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">3</div>
                     <div className="flex flex-col">
                         <h2 className="text-lg font-serif font-bold text-white">Pagamento</h2>
-                        <span className="text-[10px] text-gray-400">Processado via <strong>Mercado Pago</strong></span>
+                        <span className="text-[10px] text-gray-400">Escolha como deseja pagar</span>
                     </div>
                 </div>
 
-                <div className="flex gap-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
                     <button 
                         onClick={() => setMetodoPagamento("pix")}
-                        className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${metodoPagamento === "pix" ? "bg-green-900/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]" : "border-white/10 text-gray-400 hover:border-white/30"}`}
+                        className={`flex-1 py-4 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${metodoPagamento === "pix" ? "bg-green-900/20 border-green-500 text-green-400 shadow-[0_0_10px_rgba(74,222,128,0.1)]" : "border-white/10 text-gray-400 hover:border-white/30"}`}
                     >
-                        PIX (5% OFF)
+                        PIX via WhatsApp (5% OFF)
                     </button>
                     <button 
                         onClick={() => setMetodoPagamento("cartao")}
-                        className={`flex-1 py-3 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${metodoPagamento === "cartao" ? "bg-white text-black border-white shadow-lg" : "border-white/10 text-gray-400 hover:border-white/30"}`}
+                        className={`flex-1 py-4 px-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${metodoPagamento === "cartao" ? "bg-blue-900/20 border-blue-500 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]" : "border-white/10 text-gray-400 hover:border-white/30"}`}
                     >
-                        Cartão de Crédito
+                        Mercado Pago (Cartão/Boleto)
                     </button>
                 </div>
 
                 {metodoPagamento === "pix" ? (
                     <div className="bg-green-900/10 p-6 rounded-xl border border-green-500/20 text-center animate-fade-in">
-                        <p className="text-sm text-gray-300 mb-2">O código Pix será gerado após clicar em Finalizar.</p>
-                        <p className="text-xs text-gray-500">Aprovação imediata.</p>
+                        <p className="text-sm text-gray-300 mb-2">Finalize o pedido aqui no site.</p>
+                        <p className="text-xs text-gray-500">
+                            Na próxima tela, você terá um botão para enviar o pedido ao WhatsApp e receber a chave Pix com desconto.
+                        </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in opacity-50 grayscale pointer-events-none select-none">
-                         <div className="col-span-2 text-center text-xs text-gray-500 mb-2">
-                             O pagamento será realizado em ambiente seguro do Mercado Pago na próxima etapa.
-                         </div>
-                         <input type="text" placeholder="Número do Cartão" className="input-padrao w-full col-span-2" />
-                         <input type="text" placeholder="Nome no Cartão" className="input-padrao w-full col-span-2" />
-                         <input type="text" placeholder="Validade" className="input-padrao w-full" />
-                         <input type="text" placeholder="CVV" className="input-padrao w-full" />
+                    <div className="bg-blue-900/10 p-6 rounded-xl border border-blue-500/20 text-center animate-fade-in">
+                        <p className="text-sm text-gray-300 mb-2">Ambiente Seguro Mercado Pago</p>
+                        <p className="text-xs text-gray-500">
+                            Ao clicar em "Finalizar Pedido", você será redirecionado para realizar o pagamento com segurança.
+                        </p>
                     </div>
                 )}
             </section>
@@ -281,18 +391,15 @@ export default function Checkout() {
                     {items.map((item, idx) => (
                         <div key={`${item.id}-${idx}`} className="flex gap-3">
                             <div className="w-16 h-16 bg-neutral-800 rounded-lg relative overflow-hidden border border-white/10 flex-shrink-0">
-                                {/* CORREÇÃO AQUI: item.image em vez de item.images[0] */}
                                 <img src={item.image || '/placeholder.jpg'} alt="Produto" className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-1">
                                 <p className="text-xs font-bold text-gray-200 line-clamp-2">{item.title}</p>
                                 <p className="text-[10px] text-gray-500">Qtd: {item.quantity}</p>
-                                {/* EXIBE O TAMANHO SE HOUVER - CORREÇÃO DE TIPO (SIZE) */}
                                 {(item as any).size && (
                                    <p className="text-[10px] text-yellow-500 font-bold border border-yellow-500/30 bg-yellow-900/10 px-1 rounded w-fit mt-1">{(item as any).size}</p>
                                 )}
                                 <p className="text-xs font-bold text-white mt-1">
-                                    {/* CORREÇÃO DE TIPO (SALE_PRICE) AQUI */}
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((item as any).sale_price || item.price)}
                                 </p>
                             </div>
@@ -310,7 +417,7 @@ export default function Checkout() {
                 </div>
                 
                 <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-gray-400">Frete ({freteSelecionado === 'motoboy' ? 'Motoboy' : 'Correios'})</span>
+                    <span className="text-xs text-gray-400">Frete (Estimado)</span>
                     <span className="text-xs font-bold text-yellow-500">
                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorFrete)}
                     </span>
@@ -335,15 +442,29 @@ export default function Checkout() {
                 </div>
 
                 <button 
-                    onClick={handleFinalizarCompra}
-                    disabled={loading || items.length === 0}
-                    className="w-full py-4 bg-green-600 text-white font-bold uppercase tracking-widest text-xs rounded-xl hover:bg-green-500 transition-all shadow-[0_0_20px_rgba(22,163,74,0.4)] transform hover:-translate-y-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => {
+                        if (items.length === 0) {
+                            alert("ERRO: Carrinho vazio.");
+                            return;
+                        }
+                        handleFinalizarCompra();
+                    }}
+                    disabled={loading}
+                    className={`w-full py-4 font-bold uppercase tracking-widest text-xs rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 
+                    ${loading 
+                        ? "bg-gray-600 cursor-not-allowed opacity-50" 
+                        : items.length === 0 
+                            ? "bg-gray-700 hover:bg-gray-600 text-gray-400" 
+                            : "bg-green-600 text-white hover:bg-green-500 hover:-translate-y-1 shadow-[0_0_20px_rgba(22,163,74,0.4)]"
+                    }`}
                 >
                     {loading ? (
                         <span>Processando...</span>
+                    ) : items.length === 0 ? (
+                        <span>Carrinho Vazio</span>
                     ) : (
                         <>
-                            <span>Finalizar e Pagar</span>
+                            <span>Finalizar Pedido</span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path fillRule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
                             </svg>
@@ -352,7 +473,7 @@ export default function Checkout() {
                 </button>
 
                 <div className="mt-4 flex items-center justify-center gap-2 opacity-50 grayscale text-gray-400">
-                     <span className="text-[10px]">🔒 Processado por Mercado Pago</span>
+                     <span className="text-[10px]">🔒 Dados protegidos</span>
                 </div>
             </div>
         </div>
@@ -369,7 +490,7 @@ export default function Checkout() {
             font-size: 0.875rem;
             outline: none;
             transition: all 0.3s;
-            color: #e5e7eb; /* Texto claro */
+            color: #e5e7eb;
         }
         .input-padrao::placeholder {
             color: #6b7280;

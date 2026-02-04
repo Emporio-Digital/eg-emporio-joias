@@ -1,95 +1,170 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Cadastro() {
-  return (
-    <div className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
-      
-      {/* Container de Vidro Escuro */}
-      <div className="w-full max-w-md bg-neutral-900/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-[0_0_40px_rgba(0,0,0,0.5)] p-8 md:p-10 animate-fade-in relative overflow-hidden">
-        
-        {/* Detalhe Dourado */}
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500 to-transparent"></div>
+  const { signUp } = useAuth();
+  const router = useRouter();
+  
+  // Campos do Formulário
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Estados de Controle
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-        <div className="flex flex-col items-center text-center mb-6">
-            <h1 className="text-2xl font-serif font-bold text-white tracking-wide">Crie sua Conta</h1>
-            <p className="text-xs text-gray-400 mt-2 uppercase tracking-wider">Junte-se ao clube de exclusividade</p>
+  // === TRADUTOR DE ERROS (Segurança e UX) ===
+  const translateError = (errorMsg: string) => {
+    if (errorMsg.includes("security purposes")) return "Muitas tentativas. Aguarde alguns segundos e tente novamente.";
+    if (errorMsg.includes("already registered")) return "Este e-mail já está cadastrado.";
+    if (errorMsg.includes("Password should be")) return "A senha deve ter no mínimo 6 caracteres.";
+    if (errorMsg.includes("valid email")) return "Por favor, digite um e-mail válido.";
+    return "Ocorreu um erro ao criar a conta. Tente novamente.";
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    // 1. Validação de Senhas Iguais
+    if (password !== confirmPassword) {
+        setError("As senhas não coincidem.");
+        setLoading(false);
+        return;
+    }
+
+    // 2. Validação de Tamanho de Senha
+    if (password.length < 6) {
+        setError("A senha precisa ter pelo menos 6 caracteres.");
+        setLoading(false);
+        return;
+    }
+
+    // 3. Tenta Cadastrar
+    const res = await signUp(email, password, name, phone);
+
+    if (res.error) {
+      // Se der erro, traduz e mostra amigavelmente
+      setError(translateError(res.error.message));
+      setLoading(false);
+    } else {
+      // SUCESSO: Redireciona para home ou conta
+      // Como desativamos a confirmação de email no Supabase, o login é automático.
+      router.push("/"); 
+    }
+  };
+
+  // Máscara simples de telefone (Visual)
+  const handlePhoneChange = (val: string) => {
+    // Remove tudo que não é número
+    const v = val.replace(/\D/g, "");
+    setPhone(v);
+  };
+
+  const inputClass = "w-full p-4 rounded-lg bg-neutral-800 border border-neutral-700 text-white focus:outline-none focus:border-yellow-500 transition-colors placeholder-gray-500";
+  const labelClass = "text-xs uppercase font-bold text-gray-500 mb-1 block";
+
+  return (
+    <div className="min-h-screen pt-24 px-4 flex items-center justify-center mb-10">
+      <div className="w-full max-w-md bg-neutral-900 border border-white/10 p-8 rounded-2xl shadow-2xl backdrop-blur-md">
+        
+        <div className="text-center mb-8">
+            <h1 className="text-3xl font-serif text-white mb-2">Criar Conta</h1>
+            <p className="text-gray-400 text-sm">Junte-se ao clube EG Empório.</p>
         </div>
 
-        {/* Formulário */}
-        <form className="flex flex-col gap-4">
+        {/* MENSAGEM DE ERRO AMIGÁVEL */}
+        {error && (
+            <div className="bg-red-900/20 border border-red-900/50 text-red-200 p-4 rounded-lg text-sm text-center mb-6 flex items-center justify-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                {error}
+            </div>
+        )}
+
+        <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+                <label className={labelClass}>Nome Completo</label>
+                <input 
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={inputClass}
+                    placeholder="Seu Nome"
+                    required 
+                />
+            </div>
             
-            {/* Nome */}
-            <div className="relative group">
+            <div>
+                <label className={labelClass}>WhatsApp / Telefone</label>
                 <input 
-                    required
-                    type="text" 
-                    placeholder="Nome Completo *" 
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
-                />
-            </div>
-
-            {/* Email */}
-            <div className="relative group">
-                <input 
-                    required
-                    type="email" 
-                    placeholder="Seu melhor e-mail *" 
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
-                />
-            </div>
-
-            {/* WhatsApp */}
-            <div className="relative group">
-                <input 
-                    required
                     type="tel" 
-                    placeholder="WhatsApp / Celular *" 
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
+                    value={phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className={inputClass}
+                    placeholder="(11) 99999-9999"
+                    required 
                 />
             </div>
 
-            {/* CPF */}
-            <div className="relative group">
+            <div>
+                <label className={labelClass}>Email</label>
                 <input 
-                    required
-                    type="text" 
-                    placeholder="CPF (somente números) *" 
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
+                    type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className={inputClass}
+                    placeholder="seu@email.com"
+                    required 
                 />
             </div>
 
-            {/* Senha */}
-            <div className="relative group">
-                <input 
-                    required
-                    type="password" 
-                    placeholder="Crie uma senha *" 
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:border-yellow-500 focus:bg-black/60 transition-all placeholder:text-gray-600 text-gray-200"
-                />
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className={labelClass}>Senha</label>
+                    <input 
+                        type="password" 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className={inputClass}
+                        placeholder="Mínimo 6"
+                        required 
+                    />
+                </div>
+                <div>
+                    <label className={labelClass}>Confirmar Senha</label>
+                    <input 
+                        type="password" 
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className={`${inputClass} ${confirmPassword && password !== confirmPassword ? 'border-red-500' : ''}`}
+                        placeholder="Repita a senha"
+                        required 
+                    />
+                </div>
             </div>
 
-            {/* Termos */}
-            <div className="flex items-center gap-2 mt-2">
-                <input required type="checkbox" id="termos" className="accent-yellow-500 w-4 h-4 cursor-pointer" />
-                <label htmlFor="termos" className="text-[10px] text-gray-400 cursor-pointer">
-                    Li e aceito os <a href="#" className="underline hover:text-yellow-500">Termos de Uso</a> e <a href="#" className="underline hover:text-yellow-500">Privacidade</a>.
-                </label>
-            </div>
-
-            {/* Botão Cadastrar */}
-            <button type="submit" className="w-full mt-4 bg-white text-black py-3.5 rounded-xl font-bold uppercase tracking-widest text-xs hover:bg-yellow-500 hover:text-white hover:shadow-[0_0_20px_rgba(234,179,8,0.4)] transition-all transform hover:-translate-y-0.5">
-                Criar Minha Conta
+            <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-4 rounded-lg transition-all uppercase tracking-widest disabled:opacity-50 mt-4 shadow-lg hover:shadow-yellow-500/20"
+            >
+                {loading ? "Criando Cadastro..." : "CADASTRAR"}
             </button>
         </form>
 
-        {/* Voltar para Login */}
-        <div className="mt-8 text-center pt-6 border-t border-white/10">
-            <p className="text-xs text-gray-500">
-                Já é cliente? <Link href="/login" className="text-yellow-500 font-bold hover:underline">Fazer Login</Link>
-            </p>
+        <div className="mt-6 text-center text-sm text-gray-400">
+            Já tem conta? <Link href="/login" className="text-yellow-500 hover:underline font-bold">Faça Login</Link>
         </div>
-
       </div>
     </div>
   );

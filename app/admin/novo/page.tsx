@@ -21,7 +21,6 @@ function PhotoIcon({ className }: { className?: string }) {
   );
 }
 
-// OPÇÕES DE TAMANHO
 const SIZE_OPTIONS: Record<string, string[]> = {
   aneis: ['10', '12', '14', '16', '18', '20', '22', '24', '26', '28'],
   colares: ['40cm', '45cm', '50cm', '60cm', '70cm'],
@@ -38,16 +37,15 @@ export default function NewProduct() {
   const [category, setCategory] = useState('aneis');
   const [description, setDescription] = useState('');
   const [stock, setStock] = useState('1');
+  const [displayOrder, setDisplayOrder] = useState('0'); // Nova ordem
   
-  // IMAGENS
-  const [imageFile, setImageFile] = useState<File | null>(null); // Principal
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]); // Extras
+  const [imageFile, setImageFile] = useState<File | null>(null); 
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]); 
 
   const [isHighlight, setIsHighlight] = useState(false); 
   const [discountPercent, setDiscountPercent] = useState(''); 
   const [finalPricePreview, setFinalPricePreview] = useState<number | null>(null);
 
-  // Novo estado para tamanhos
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
 
   useEffect(() => {
@@ -60,7 +58,6 @@ export default function NewProduct() {
     }
   }, [price, discountPercent]);
 
-  // Resetar tamanhos quando mudar categoria
   useEffect(() => {
     setSelectedSizes([]);
   }, [category]);
@@ -75,7 +72,6 @@ export default function NewProduct() {
 
   const handleGallerySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-        // Pega os arquivos e limita a 4 fotos extras
         const newFiles = Array.from(e.target.files).slice(0, 4);
         setGalleryFiles(newFiles);
     }
@@ -91,13 +87,13 @@ export default function NewProduct() {
 
       const numericPrice = parseFloat(price);
       const numericDiscount = parseFloat(discountPercent);
+      const numericOrder = parseInt(displayOrder) || 0;
       
       let salePrice = null;
       if (!isNaN(numericDiscount) && numericDiscount > 0) {
         salePrice = numericPrice - (numericPrice * (numericDiscount / 100));
       }
 
-      // 1. Upload Imagem Principal
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `main_${Date.now()}.${fileExt}`;
       
@@ -111,7 +107,6 @@ export default function NewProduct() {
         .from('products')
         .getPublicUrl(fileName);
 
-      // 2. Upload Galeria (Se houver)
       const galleryUrls: string[] = [];
       if (galleryFiles.length > 0) {
           for (let i = 0; i < galleryFiles.length; i++) {
@@ -143,9 +138,10 @@ export default function NewProduct() {
             description,
             category,
             stock: parseInt(stock),
-            images: [publicUrl], // Mantém compatibilidade
-            gallery: galleryUrls, // Nova coluna
+            images: [publicUrl], 
+            gallery: galleryUrls,
             sizes: selectedSizes,
+            display_order: numericOrder // Salva a ordem
           },
         ]);
 
@@ -162,10 +158,8 @@ export default function NewProduct() {
     }
   }
 
-  // ESTILOS DE INPUT PADRONIZADOS PARA DARK MODE
   const inputClass = "w-full p-3 rounded-lg border border-neutral-700 bg-neutral-800 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 placeholder-gray-500";
   const labelClass = "block text-sm font-medium text-gray-300 mb-1";
-
   const currentSizeOptions = SIZE_OPTIONS[category] || [];
 
   return (
@@ -231,7 +225,8 @@ export default function NewProduct() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 items-end">
+          {/* ESTOQUE E ORDEM */}
+          <div className="grid grid-cols-3 gap-4 items-end">
             <div>
               <label className={labelClass}>Estoque Total</label>
               <input 
@@ -240,6 +235,17 @@ export default function NewProduct() {
                 value={stock}
                 onChange={e => setStock(e.target.value)}
                 className={inputClass}
+              />
+            </div>
+            
+            <div>
+              <label className={labelClass}>Ordem de Exibição</label>
+              <input 
+                type="number" 
+                value={displayOrder}
+                onChange={e => setDisplayOrder(e.target.value)}
+                className={inputClass}
+                placeholder="0"
               />
             </div>
 
@@ -256,7 +262,7 @@ export default function NewProduct() {
                         <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${isHighlight ? 'translate-x-6' : 'translate-x-0'}`}></div>
                     </div>
                     <span className="text-sm font-medium text-gray-300">
-                        Produto em Destaque?
+                        Destaque?
                     </span>
                 </label>
             </div>
@@ -276,7 +282,6 @@ export default function NewProduct() {
             </select>
           </div>
 
-          {/* SELEÇÃO DE TAMANHOS */}
           <div>
              <label className={labelClass}>Tamanhos Disponíveis</label>
              <div className="flex flex-wrap gap-2 mt-2">
@@ -295,7 +300,6 @@ export default function NewProduct() {
                     </button>
                 ))}
              </div>
-             <p className="text-[10px] text-gray-500 mt-2">Clique para selecionar/deselecionar.</p>
           </div>
 
           <div>

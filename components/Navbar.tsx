@@ -5,10 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import CartSidebar from "./CartSidebar";
 import { useCart } from "@/context/CartContext"; 
+import { useAuth } from "@/context/AuthContext"; // Importado Auth
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { cartOpen, setCartOpen, cartCount } = useCart();
+  const { user } = useAuth(); // Pega dados do usuário
+
+  // Pega o primeiro nome para exibir
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || "Conta";
 
   return (
     <>
@@ -47,11 +52,19 @@ export default function Navbar() {
 
             {/* Ações */}
             <div className="flex items-center gap-4">
-                <Link href="/login" className="flex items-center gap-2 hover:text-gold-400 text-gray-300 transition-colors font-medium">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                  </svg>
-                  <span className="hidden xl:inline">Entrar</span>
+                {/* Lógica de Usuário: Se logado vai pra conta, se não vai pra login */}
+                <Link 
+                  href={user ? "/minha-conta" : "/login"} 
+                  className="flex items-center gap-2 hover:text-gold-400 text-gray-300 transition-colors font-medium group"
+                >
+                  <div className={`p-1.5 rounded-full border transition-colors ${user ? 'border-green-500/50 text-green-400' : 'border-white/10 group-hover:border-gold-500/50'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                  </div>
+                  <span className="hidden xl:inline group-hover:underline decoration-gold-500/50 underline-offset-4">
+                     {user ? `Olá, ${firstName}` : "Entrar"}
+                  </span>
                 </Link>
 
                 <button 
@@ -82,7 +95,7 @@ export default function Navbar() {
             )}
           </button>
 
-          {/* Botão WhatsApp */}
+          {/* Botão WhatsApp no Topo (Mobile/Desktop) */}
           <a 
             href="https://wa.me/5511916053292?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20EG%20Emp%C3%B3rio%20Joias%20e%20gostaria%20de%20atendimento." 
             target="_blank" 
@@ -95,17 +108,21 @@ export default function Navbar() {
           </a>
         </div>
 
-        {/* MENU MOBILE ESCURO */}
+        {/* MENU MOBILE ATUALIZADO */}
         {menuOpen && (
           <div className="lg:hidden bg-neutral-900 border-t border-white/10 absolute top-full left-0 right-0 shadow-xl p-4 flex flex-col gap-4 animate-fade-in z-50">
              <Link href="/" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
              <Link href="/colecoes" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
-             <Link href="/sobre" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Sobre Nós</Link>
-             <div className="h-[1px] bg-white/10"></div>
              
-             <Link href="/login" className="w-full py-3 bg-white text-black rounded font-bold uppercase text-xs text-center block" onClick={() => setMenuOpen(false)}>
-                Entrar
-             </Link>
+             {user ? (
+                <Link href="/minha-conta" className="p-3 bg-neutral-800 border border-white/10 rounded text-yellow-500 font-bold" onClick={() => setMenuOpen(false)}>
+                    Minha Conta (Olá, {firstName})
+                </Link>
+             ) : (
+                <Link href="/login" className="w-full py-3 bg-white text-black rounded font-bold uppercase text-xs text-center block" onClick={() => setMenuOpen(false)}>
+                    Entrar / Cadastrar
+                </Link>
+             )}
 
              <a href="https://wa.me/5511916053292?text=Ol%C3%A1!%20Vim%20pelo%20site%20da%20EG%20Emp%C3%B3rio%20Joias%20e%20gostaria%20de%20atendimento." className="w-full py-3 bg-green-700 text-white rounded font-bold uppercase text-xs flex justify-center items-center gap-2">
                 <span>WhatsApp</span>
@@ -114,12 +131,9 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* --- UPGRADE DA BARRA SUPERIOR (PRETA COM DOURADO) --- */}
+      {/* BARRA PRETA E DOURADA */}
       <div className="w-full bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-t border-white/5 py-3 relative overflow-hidden">
-          {/* Linha Decorativa Dourada Sutil */}
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-yellow-500 to-transparent opacity-50"></div>
-          
-          {/* TEXTO AJUSTADO: text-gray-300 */}
           <div className="flex flex-wrap justify-center items-center gap-6 md:gap-12 text-[10px] md:text-xs font-serif tracking-[0.2em] text-gray-300 font-bold uppercase">
               <span className="flex items-center gap-2 hover:text-gold-400 transition-colors cursor-default">
                  <span className="text-yellow-500 text-sm">✦</span> Ouro 18k
