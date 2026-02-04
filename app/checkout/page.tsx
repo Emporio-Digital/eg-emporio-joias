@@ -111,7 +111,7 @@ export default function Checkout() {
 
         if (orderError) throw new Error("Erro de Banco de Dados: " + orderError.message);
 
-        // 3. SUCESSO
+        // 3. SUCESSO E DADOS LOCAIS
         setOrderId(orderData.id);
         setSavedOrder({
             items: [...items], // Salva cópia dos itens
@@ -119,6 +119,42 @@ export default function Checkout() {
             freight: valorFrete,
             discount: valorDesconto
         });
+
+        // =====================================================================
+        // INTEGRAÇÃO MERCADO PAGO - INÍCIO
+        // (Única parte adicionada ao seu código original)
+        // =====================================================================
+        if (metodoPagamento === "cartao") {
+            try {
+                const response = await fetch("/api/create-preference", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        items: items,
+                        payer: { name: nome, email: email },
+                        orderId: orderData.id,
+                        shippingCost: valorFrete
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.init_point) {
+                    clearCart();
+                    // Redireciona para o Mercado Pago
+                    window.location.href = data.init_point;
+                    return; // Retorna para não exibir a tela de sucesso do site
+                } else {
+                    throw new Error("Não foi possível gerar o link de pagamento.");
+                }
+            } catch (mpError) {
+                console.error(mpError);
+                throw new Error("Erro ao conectar com Mercado Pago.");
+            }
+        }
+        // =====================================================================
+        // INTEGRAÇÃO MERCADO PAGO - FIM
+        // =====================================================================
         
         clearCart();
         setSuccess(true);
@@ -126,8 +162,12 @@ export default function Checkout() {
     } catch (error: any) {
         console.error("Erro no checkout:", error);
         alert("Não foi possível concluir o pedido: " + error.message);
-    } finally {
-        setLoading(false);
+        setLoading(false); // Mantém o loading false se der erro
+    } 
+    
+    // Se for PIX, tira o loading. Se for Cartão, deixa o loading enquanto redireciona.
+    if (metodoPagamento === 'pix') {
+         setLoading(false);
     }
   }
 
