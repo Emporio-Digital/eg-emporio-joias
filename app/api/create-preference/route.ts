@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     const mpItems = items.map((item: any) => ({
       id: item.id,
       title: item.title,
+      description: item.title, // ADICIONEI ESTA LINHA PARA APARECER NO MP
       quantity: Number(item.quantity),
       unit_price: Number(item.sale_price || item.price),
       currency_id: "BRL",
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
       mpItems.push({
         id: "frete",
         title: "Custo de Envio (Frete)",
+        description: "Envio", // ADICIONEI ESTA LINHA PARA O FRETE TAMBÉM
         quantity: 1,
         unit_price: Number(shippingCost),
         currency_id: "BRL",
