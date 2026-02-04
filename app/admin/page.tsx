@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 
+// === CONFIGURAÇÃO DE SEGURANÇA ===
+// COLOQUE AQUI O E-MAIL DA SUA CONTA DE ADMIN (pode colocar mais de um se quiser)
+const ADMIN_EMAILS = ["eg.emporiodigital@outlook.com"];
+
 // Ícones SVG
 const Icons = {
   Plus: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>,
@@ -16,6 +20,10 @@ const Icons = {
 };
 
 export default function AdminDashboard() {
+  // Estado de verificação de admin
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
   const [activeTab, setActiveTab] = useState<'estoque' | 'vendas'>('estoque');
   const [productTab, setProductTab] = useState<'destaques' | 'todos'>('destaques');
 
@@ -26,9 +34,30 @@ export default function AdminDashboard() {
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
 
+  // 1. EFEITO DE SEGURANÇA (Executa ao carregar a página)
   useEffect(() => {
-    fetchData();
-  }, [activeTab]);
+    async function checkAdmin() {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Se não tiver usuário logado, OU se o email não estiver na lista permitida
+        if (!user || !user.email || !ADMIN_EMAILS.includes(user.email)) {
+            // Redireciona para a home imediatamente
+            window.location.href = "/"; 
+        } else {
+            // É admin, libera o acesso
+            setIsAdmin(true);
+            setCheckingAuth(false);
+        }
+    }
+    checkAdmin();
+  }, []);
+
+  // 2. EFEITO DE DADOS (Só roda se for admin confirmado)
+  useEffect(() => {
+    if (isAdmin) {
+        fetchData();
+    }
+  }, [activeTab, isAdmin]);
 
   async function fetchData() {
     if (activeTab === 'estoque') {
@@ -117,6 +146,16 @@ export default function AdminDashboard() {
 
   const displayedProducts = productTab === 'destaques' ? products.filter(p => p.highlight) : products;
 
+  // Se estiver verificando ou não for admin, não mostra NADA da interface (Tela preta ou loading)
+  if (checkingAuth || !isAdmin) {
+      return (
+          <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500"></div>
+          </div>
+      );
+  }
+
+  // Se passou na verificação, renderiza o painel original
   return (
     <div className="min-h-screen pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto bg-neutral-950 text-gray-100">
       

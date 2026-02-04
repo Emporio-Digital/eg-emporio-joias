@@ -12,31 +12,25 @@ export async function POST(request: Request) {
 
     const preference = new Preference(client);
 
+    // Mapeia apenas os produtos reais
     const mpItems = items.map((item: any) => ({
       id: item.id,
       title: item.title,
-      description: item.title, // ADICIONEI ESTA LINHA PARA APARECER NO MP
+      description: item.title, 
       quantity: Number(item.quantity),
       unit_price: Number(item.sale_price || item.price),
       currency_id: "BRL",
       picture_url: item.image,
     }));
 
-    if (shippingCost > 0) {
-      mpItems.push({
-        id: "frete",
-        title: "Custo de Envio (Frete)",
-        description: "Envio", // ADICIONEI ESTA LINHA PARA O FRETE TAMBÉM
-        quantity: 1,
-        unit_price: Number(shippingCost),
-        currency_id: "BRL",
-      });
-    }
-
-    // AQUI ESTÁ O PULO DO GATO: Ele usa o NEXT_PUBLIC_BASE_URL do .env
     const result = await preference.create({
       body: {
         items: mpItems,
+        // Frete enviado separadamente
+        shipments: {
+            cost: Number(shippingCost),
+            mode: "not_specified",
+        },
         payer: {
           name: payer.name,
           email: payer.email,
@@ -48,6 +42,7 @@ export async function POST(request: Request) {
           pending: `${process.env.NEXT_PUBLIC_BASE_URL}/sucesso?order_id=${orderId}&status=pending`,
         },
         auto_return: "approved",
+        statement_descriptor: "EG EMPORIO", 
       },
     });
 
