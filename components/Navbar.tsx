@@ -63,18 +63,17 @@ export default function Navbar() {
             </Link>
           </nav>
 
-          {/* 3. Ações Direita (Carrinho + Mobile Menu) */}
+          {/* 3. Ações Direita */}
           <div className="flex items-center gap-4">
             
-            {/* CARRINHO (AGORA VISÍVEL SEMPRE) */}
+            {/* CARRINHO (AGORA: HIDDEN NO MOBILE, FLEX NO DESKTOP) */}
             <button 
               onClick={() => setCartOpen(true)}
-              className="flex items-center gap-2 text-gold-400 font-bold border border-gold-500/50 bg-gold-900/10 px-3 py-2 md:px-4 md:py-2 rounded-full hover:shadow-md hover:shadow-gold-500/20 transition-all group"
+              className="hidden lg:flex items-center gap-2 text-gold-400 font-bold border border-gold-500/50 bg-gold-900/10 px-3 py-2 md:px-4 md:py-2 rounded-full hover:shadow-md hover:shadow-gold-500/20 transition-all group"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 group-hover:scale-110 transition-transform">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
               </svg>
-              {/* Contagem (oculta "zero" em mobile pra economizar espaço, opcional) */}
               <span>({cartCount})</span>
             </button>
 
@@ -109,9 +108,26 @@ export default function Navbar() {
 
         </div>
 
-        {/* MENU MOBILE EXPANDIDO (Mantido igual) */}
+        {/* MENU MOBILE EXPANDIDO (COM CARRINHO AGORA) */}
         {menuOpen && (
           <div className="lg:hidden bg-neutral-900 border-t border-white/10 absolute top-full left-0 right-0 shadow-xl p-4 flex flex-col gap-4 animate-fade-in z-50">
+             
+             {/* CARRINHO NO MOBILE (DENTRO DO MENU) */}
+             <button 
+                onClick={() => { setMenuOpen(false); setCartOpen(true); }}
+                className="w-full p-3 bg-neutral-800 border border-gold-500/30 rounded text-gold-400 font-bold flex justify-between items-center hover:bg-neutral-700 transition"
+             >
+                <div className="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm7.5 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                    </svg>
+                    <span>MEU CARRINHO</span>
+                </div>
+                <span>({cartCount})</span>
+             </button>
+
+             <div className="h-[1px] bg-white/10 w-full"></div>
+
              <Link href="/" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
              <Link href="/colecoes" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
              
