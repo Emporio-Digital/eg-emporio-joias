@@ -138,6 +138,18 @@ export default function AdminDashboard() {
     fetchData();
   }
 
+  // === NOVA FUNÇÃO: EXCLUIR PEDIDO (LIMPEZA) ===
+  async function handleDeleteOrder(id: number) {
+    if (!confirm('ATENÇÃO: Excluir este pedido permanentemente? Essa ação não pode ser desfeita.')) return;
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) {
+        alert("Erro ao excluir: " + error.message);
+    } else {
+        fetchData();
+        setSelectedOrder(null);
+    }
+  }
+
   const filteredOrders = orders.filter(order => {
     const statusMatch = filterStatus === 'todos' ? true : order.status === filterStatus;
     const dateMatch = filterDate ? order.created_at.startsWith(filterDate) : true;
@@ -276,6 +288,9 @@ export default function AdminDashboard() {
                       {order.status !== 'delivered' && order.status !== 'cancelled' && (
                         <button onClick={() => handleMarkDelivered(order.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-500 transition shadow">Entregue</button>
                       )}
+                      
+                      {/* BOTÃO EXCLUIR PEDIDO NA TABELA */}
+                      <button onClick={() => handleDeleteOrder(order.id)} className="p-1.5 text-red-400 hover:bg-red-900/20 rounded transition" title="Excluir Pedido"><Icons.Trash /></button>
                     </td>
                   </tr>
                 ))
@@ -322,6 +337,13 @@ export default function AdminDashboard() {
                     </div>
                 </div>
                 <div className="mt-6 flex justify-between">
+                    <button 
+                         onClick={() => handleDeleteOrder(selectedOrder.id)}
+                         className="bg-red-900/20 text-red-500 border border-red-900/50 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-900/40 flex items-center gap-2"
+                    >
+                        <Icons.Trash /> Excluir
+                    </button>
+
                     {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
                         <button 
                             onClick={() => handleCancelOrder(selectedOrder)}

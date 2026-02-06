@@ -130,6 +130,8 @@ export default function Navbar() {
 
              <Link href="/" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Início</Link>
              <Link href="/colecoes" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Coleções</Link>
+             {/* Adicionado link Sobre Nós no Mobile */}
+             <Link href="/sobre" className="p-3 hover:bg-white/10 rounded text-gray-200 font-semibold" onClick={() => setMenuOpen(false)}>Sobre Nós</Link>
              
              {user ? (
                 <Link href="/minha-conta" className="p-3 bg-neutral-800 border border-white/10 rounded text-yellow-500 font-bold" onClick={() => setMenuOpen(false)}>

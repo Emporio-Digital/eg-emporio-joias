@@ -139,7 +139,7 @@ export default function Home() {
                            )}
                         </div>
                         
-                        <p className="text-xs text-gray-400 mt-1 mb-4">em até 10x sem juros</p>
+                        <p className="text-xs text-gray-400 mt-1 mb-4">em até 10x</p>
                         
                         <div className={`w-full py-3 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center ${
                             isOutOfStock 

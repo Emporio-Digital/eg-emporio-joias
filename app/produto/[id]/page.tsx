@@ -256,7 +256,7 @@ export default function ProdutoDetalhe({ params }: { params: Promise<{ id: strin
               </div>
 
               <p className="text-sm text-gray-300 mb-8">
-                  Em até 10x sem juros no cartão ou <span className="text-green-400 font-bold">5% OFF</span> no Pix Direto.
+                  Em até 10x no cartão ou <span className="text-green-400 font-bold">5% OFF</span> no Pix Direto.
               </p>
     
               <div className="h-[1px] bg-white/10 w-full mb-8"></div>
