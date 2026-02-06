@@ -47,7 +47,8 @@ export default function DetalheColecao({ params }: { params: Promise<{ categoria
             {/* Cabeçalho da Coleção */}
             <div className="flex flex-col items-center mb-12">
                 <span className="text-xs font-bold text-gold-600 uppercase tracking-widest mb-2">Coleção</span>
-                <h1 className="text-3xl md:text-4xl font-serif text-gray-900">{pageTitle}</h1>
+                {/* AQUI ESTAVA O ERRO: mudei de text-gray-900 para text-white */}
+                <h1 className="text-3xl md:text-4xl font-serif text-white">{pageTitle}</h1>
                 <div className="h-[1px] w-20 bg-gray-300 mt-4"></div>
             </div>
 
