@@ -83,7 +83,6 @@ export default function Checkout() {
     // Se quiser adicionar outros no futuro via código, é só colocar outro IF aqui.
     
     // Fallback: Se não for o cupom manual, avisa que não existe
-    // (Desativamos a chamada ao banco para evitar o erro do cache hoje)
     setMsgCupom("❌ Cupom inválido ou expirado.");
     setDescontoCupom(0);
     setLoadingCupom(false);
@@ -140,7 +139,7 @@ export default function Checkout() {
                     customer_phone: whatsapp,
                     customer_cpf: cpf,
                     
-                    total_amount: totalFinal, // Salva o valor REAL final a ser pago (já com o desconto manual)
+                    total_amount: totalFinal, // Salva o valor REAL final a ser pago
                     status: 'pending', 
                     payment_method: metodoPagamento,
                     shipping_method: freteSelecionado,
@@ -181,7 +180,8 @@ export default function Checkout() {
                 const itemsParaMercadoPago = items.map(item => ({
                     id: item.id,
                     title: item.title,
-                    unit_price: Number(item.sale_price || item.price), 
+                    // CORREÇÃO AQUI: Adicionado (item as any) para passar no Build do TypeScript
+                    unit_price: Number((item as any).sale_price || item.price), 
                     quantity: item.quantity,
                     picture_url: item.image 
                 }));
