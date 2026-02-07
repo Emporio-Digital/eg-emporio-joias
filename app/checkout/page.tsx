@@ -11,8 +11,9 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false); 
   const [orderId, setOrderId] = useState<number | null>(null);
-  // Snapshot do pedido para o WhatsApp não pegar dados vazios
-  const [savedOrder, setSavedOrder] = useState<{items: any[], total: number, freight: number, discount: number} | null>(null);
+  
+  // Snapshot do pedido
+  const [savedOrder, setSavedOrder] = useState<{items: any[], total: number, freight: number, discountPix: number, discountCoupon: number} | null>(null);
 
   // Dados Pessoais
   const [nome, setNome] = useState("");
@@ -28,13 +29,65 @@ export default function Checkout() {
   const [cidade, setCidade] = useState("");
   const [complemento, setComplemento] = useState("");
   
+  // Cupom de Desconto
+  const [cupomInput, setCupomInput] = useState("");
+  const [descontoCupom, setDescontoCupom] = useState(0);
+  const [msgCupom, setMsgCupom] = useState("");
+  const [loadingCupom, setLoadingCupom] = useState(false);
+
   const [metodoPagamento, setMetodoPagamento] = useState("pix"); 
   const [freteSelecionado, setFreteSelecionado] = useState("motoboy"); 
 
+  // Cálculos Atualizados
   const subtotal = total; 
   const valorFrete = freteSelecionado === 'motoboy' ? 25.00 : 35.00;
-  const valorDesconto = metodoPagamento === 'pix' ? subtotal * 0.05 : 0;
-  const totalFinal = subtotal + valorFrete - valorDesconto;
+  
+  // Desconto PIX (5%)
+  const valorDescontoPix = metodoPagamento === 'pix' ? subtotal * 0.05 : 0;
+  
+  // Total Final = Subtotal + Frete - Pix - Cupom
+  const totalCalculado = subtotal + valorFrete - valorDescontoPix - descontoCupom;
+  // Garante que não fique negativo
+  const totalFinal = totalCalculado > 0 ? totalCalculado : 0;
+
+  // =================================================================
+  // SOLUÇÃO DE EMERGÊNCIA: VALIDAÇÃO LOCAL DO CUPOM
+  // =================================================================
+  const aplicarCupom = async () => {
+    setMsgCupom("");
+    setDescontoCupom(0);
+    
+    if (!cupomInput) return;
+
+    const codigo = cupomInput.trim().toUpperCase();
+    setLoadingCupom(true);
+    
+    console.log("Validando cupom:", codigo);
+
+    // ATRASO ARTIFICIAL PARA PARECER QUE FOI NO BANCO (UX)
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // REGRA MANUAL PARA O LANÇAMENTO (Funciona 100%)
+    if (codigo === "LANCAMENTO15") {
+        if (subtotal >= 99) {
+            setDescontoCupom(15.00);
+            setMsgCupom("✅ Cupom de R$ 15,00 aplicado com sucesso!");
+        } else {
+            setDescontoCupom(0);
+            setMsgCupom("⚠️ Este cupom requer compras acima de R$ 99,00");
+        }
+        setLoadingCupom(false);
+        return; // Encerra a função aqui, nem tenta ir no banco
+    }
+
+    // Se quiser adicionar outros no futuro via código, é só colocar outro IF aqui.
+    
+    // Fallback: Se não for o cupom manual, avisa que não existe
+    // (Desativamos a chamada ao banco para evitar o erro do cache hoje)
+    setMsgCupom("❌ Cupom inválido ou expirado.");
+    setDescontoCupom(0);
+    setLoadingCupom(false);
+  };
 
   async function handleFinalizarCompra() {
     const camposFaltando = [];
@@ -63,7 +116,6 @@ export default function Checkout() {
     try {
         // 1. BAIXA DE ESTOQUE SEGURA (Atomicidade)
         for (const item of items) {
-            // Chama a função RPC e espera TRUE ou FALSE
             const { data: success, error: rpcError } = await supabase
                 .rpc('decrement_stock', { product_id: item.id, quantity: item.quantity });
             
@@ -71,7 +123,6 @@ export default function Checkout() {
                 throw new Error(`Erro técnico ao verificar estoque: ${rpcError.message}`);
             }
 
-            // Se success for false, significa que o banco RECUSOU a venda por falta de estoque
             if (!success) {
                 throw new Error(`O produto "${item.title}" acabou de esgotar ou a quantidade solicitada não está disponível.`);
             }
@@ -79,7 +130,7 @@ export default function Checkout() {
 
         const fullAddress = `${rua}, ${numero} - ${bairro}, ${cidade} - CEP: ${cep} ${complemento ? `(${complemento})` : ''}`;
 
-        // 2. CRIA O PEDIDO
+        // 2. CRIA O PEDIDO NO SUPABASE
         const { data: orderData, error: orderError } = await supabase
             .from('orders')
             .insert([
@@ -89,11 +140,11 @@ export default function Checkout() {
                     customer_phone: whatsapp,
                     customer_cpf: cpf,
                     
-                    total_amount: totalFinal,
+                    total_amount: totalFinal, // Salva o valor REAL final a ser pago (já com o desconto manual)
                     status: 'pending', 
                     payment_method: metodoPagamento,
                     shipping_method: freteSelecionado,
-                    items: items,
+                    items: items, // Salva os itens originais
 
                     address_full: fullAddress,
 
@@ -114,23 +165,43 @@ export default function Checkout() {
         // 3. SUCESSO E DADOS LOCAIS
         setOrderId(orderData.id);
         setSavedOrder({
-            items: [...items], // Salva cópia dos itens
+            items: [...items],
             total: totalFinal,
             freight: valorFrete,
-            discount: valorDesconto
+            discountPix: valorDescontoPix,
+            discountCoupon: descontoCupom
         });
 
         // =====================================================================
-        // INTEGRAÇÃO MERCADO PAGO - INÍCIO
-        // (Única parte adicionada ao seu código original)
+        // INTEGRAÇÃO MERCADO PAGO
         // =====================================================================
         if (metodoPagamento === "cartao") {
             try {
+                // Truque: Criamos uma lista de itens para o MP que inclui o desconto como item negativo
+                const itemsParaMercadoPago = items.map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    unit_price: Number(item.sale_price || item.price), 
+                    quantity: item.quantity,
+                    picture_url: item.image 
+                }));
+                
+                // Se tiver cupom, adiciona como item de desconto (valor negativo)
+                if (descontoCupom > 0) {
+                    itemsParaMercadoPago.push({
+                        id: "CUPOM",
+                        title: `Desconto Cupom (${cupomInput})`,
+                        quantity: 1,
+                        unit_price: -descontoCupom, 
+                        picture_url: "" 
+                    } as any);
+                }
+
                 const response = await fetch("/api/create-preference", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        items: items,
+                        items: itemsParaMercadoPago,
                         payer: { name: nome, email: email },
                         orderId: orderData.id,
                         shippingCost: valorFrete
@@ -141,9 +212,8 @@ export default function Checkout() {
 
                 if (data.init_point) {
                     clearCart();
-                    // Redireciona para o Mercado Pago
                     window.location.href = data.init_point;
-                    return; // Retorna para não exibir a tela de sucesso do site
+                    return; 
                 } else {
                     throw new Error("Não foi possível gerar o link de pagamento.");
                 }
@@ -152,9 +222,6 @@ export default function Checkout() {
                 throw new Error("Erro ao conectar com Mercado Pago.");
             }
         }
-        // =====================================================================
-        // INTEGRAÇÃO MERCADO PAGO - FIM
-        // =====================================================================
         
         clearCart();
         setSuccess(true);
@@ -162,16 +229,15 @@ export default function Checkout() {
     } catch (error: any) {
         console.error("Erro no checkout:", error);
         alert("Não foi possível concluir o pedido: " + error.message);
-        setLoading(false); // Mantém o loading false se der erro
+        setLoading(false);
     } 
     
-    // Se for PIX, tira o loading. Se for Cartão, deixa o loading enquanto redireciona.
     if (metodoPagamento === 'pix') {
          setLoading(false);
     }
   }
 
-  // === WHATSAPP CORRIGIDO (Usa savedOrder e \n) ===
+  // === WHATSAPP GERADOR ===
   const gerarLinkWhatsapp = () => {
     if (!orderId || !savedOrder) return "#";
 
@@ -183,6 +249,22 @@ export default function Checkout() {
     ).join(quebra);
 
     const fmt = (val: number) => val.toFixed(2).replace('.', ',');
+
+    // Prepara as linhas do resumo financeiro
+    const linhasFinanceiras = [
+        `Subtotal: R$ ${fmt(savedOrder.total - savedOrder.freight + savedOrder.discountPix + savedOrder.discountCoupon)}`,
+        `Frete: R$ ${fmt(savedOrder.freight)}`
+    ];
+
+    if (savedOrder.discountCoupon > 0) {
+        linhasFinanceiras.push(`Cupom Promocional (${cupomInput}): - R$ ${fmt(savedOrder.discountCoupon)}`);
+    }
+
+    if (savedOrder.discountPix > 0) {
+        linhasFinanceiras.push(`Desconto Pix (5%): - R$ ${fmt(savedOrder.discountPix)}`);
+    }
+
+    linhasFinanceiras.push(`TOTAL A PAGAR: R$ ${fmt(savedOrder.total)}`);
 
     const linhas = [
         `NOVO PEDIDO REALIZADO`,
@@ -204,15 +286,11 @@ export default function Checkout() {
         listaItens,
         traco,
         `RESUMO DE VALORES`,
-        `Subtotal: R$ ${fmt(savedOrder.total - savedOrder.freight + savedOrder.discount)}`,
-        `Frete: R$ ${fmt(savedOrder.freight)}`,
-        `Desconto: - R$ ${fmt(savedOrder.discount)}`,
-        `TOTAL FINAL: R$ ${fmt(savedOrder.total)}`,
+        ...linhasFinanceiras,
         traco,
         `Aguardo a chave Pix para pagamento.`
     ];
 
-    // Remove linhas vazias (caso não tenha complemento) e junta
     const mensagem = linhas.filter(l => l !== '').join(quebra);
 
     return `https://wa.me/5511916053292?text=${encodeURIComponent(mensagem)}`;
@@ -236,7 +314,7 @@ export default function Checkout() {
                     <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-6 mb-8 animate-pulse">
                         <p className="text-sm text-green-400 font-bold mb-3 uppercase tracking-wider">⚠️ Última Etapa</p>
                         <p className="text-gray-300 mb-6 text-sm">
-                            Para validar os <strong>5% de desconto</strong> e liberar o envio, envie o pedido para nosso WhatsApp agora.
+                            Para validar os descontos e liberar o envio, envie o pedido para nosso WhatsApp agora.
                         </p>
                         <a 
                             href={gerarLinkWhatsapp()}
@@ -294,7 +372,7 @@ export default function Checkout() {
     );
   }
 
-  // === FORMULÁRIO (MANTIDO IDÊNTICO) ===
+  // === FORMULÁRIO ===
   return (
     <div className="w-full min-h-screen pt-6 pb-20 px-4 flex justify-center bg-neutral-950">
       <div className="w-full max-w-7xl flex flex-col lg:flex-row gap-8">
@@ -447,6 +525,36 @@ export default function Checkout() {
                     ))}
                 </div>
 
+                {/* === ÁREA DO CUPOM (DINÂMICO) === */}
+                <div className="mb-4">
+                     <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            placeholder="Possui Cupom?" 
+                            className="input-padrao text-xs uppercase"
+                            value={cupomInput}
+                            onChange={(e) => setCupomInput(e.target.value)}
+                            disabled={loadingCupom || descontoCupom > 0} 
+                        />
+                        <button 
+                            onClick={aplicarCupom}
+                            disabled={loadingCupom || descontoCupom > 0}
+                            className={`text-xs font-bold px-4 rounded-xl transition-all ${descontoCupom > 0 ? 'bg-gray-600 cursor-not-allowed' : 'bg-yellow-700 hover:bg-yellow-600 text-white'}`}
+                        >
+                            {loadingCupom ? '...' : (descontoCupom > 0 ? 'OK' : 'APLICAR')}
+                        </button>
+                     </div>
+                     {msgCupom && (
+                        <p className={`text-[10px] mt-1 font-bold ${
+                            msgCupom.includes("❌") ? "text-red-400" : 
+                            msgCupom.includes("⚠️") ? "text-yellow-400" : "text-green-400"
+                        }`}>
+                            {msgCupom}
+                        </p>
+                     )}
+                </div>
+                {/* ============================== */}
+
                 <div className="h-[1px] bg-white/10 w-full mb-4"></div>
 
                 <div className="flex justify-between items-center mb-2">
@@ -463,11 +571,21 @@ export default function Checkout() {
                     </span>
                 </div>
                 
+                {/* Mostra o Cupom se estiver aplicado */}
+                {descontoCupom > 0 && (
+                    <div className="flex justify-between items-center mb-2 text-green-400">
+                        <span className="text-xs font-bold">Cupom de Desconto</span>
+                        <span className="text-xs font-bold">
+                            - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(descontoCupom)}
+                        </span>
+                    </div>
+                )}
+
                 {metodoPagamento === "pix" && (
                     <div className="flex justify-between items-center mb-2 text-green-400">
                         <span className="text-xs font-bold">Desconto Pix (5%)</span>
                         <span className="text-xs font-bold">
-                            - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorDesconto)}
+                            - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorDescontoPix)}
                         </span>
                     </div>
                 )}
