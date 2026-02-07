@@ -172,30 +172,27 @@ export default function Checkout() {
         });
 
         // =====================================================================
-        // INTEGRAÇÃO MERCADO PAGO
+        // INTEGRAÇÃO MERCADO PAGO - FIX SEGURO (LANÇAMENTO)
         // =====================================================================
         if (metodoPagamento === "cartao") {
             try {
-                // Truque: Criamos uma lista de itens para o MP que inclui o desconto como item negativo
-                const itemsParaMercadoPago = items.map(item => ({
-                    id: item.id,
-                    title: item.title,
-                    // CORREÇÃO AQUI: Adicionado (item as any) para passar no Build do TypeScript
-                    unit_price: Number((item as any).sale_price || item.price), 
-                    quantity: item.quantity,
-                    picture_url: item.image 
-                }));
-                
-                // Se tiver cupom, adiciona como item de desconto (valor negativo)
-                if (descontoCupom > 0) {
-                    itemsParaMercadoPago.push({
-                        id: "CUPOM",
-                        title: `Desconto Cupom (${cupomInput})`,
-                        quantity: 1,
-                        unit_price: -descontoCupom, 
-                        picture_url: "" 
-                    } as any);
-                }
+                // Cálculo para o Mercado Pago:
+                // O MP soma (Preço do Item + Frete).
+                // Como o totalFinal já inclui o frete e os descontos, precisamos subtrair o frete 
+                // para definir o preço do "item pedido" e deixar o MP somar o frete novamente.
+                // Isso garante que Total Cobrado = Total Visualizado no Site.
+                const valorLiquidoPedido = Math.max(0, totalFinal - valorFrete);
+
+                // Criamos um item único "Resumo do Pedido"
+                // Isso evita erros de API com valores negativos (cupons) e erros de arredondamento.
+                const itemsParaMercadoPago = [{
+                    id: `ORDER-${orderData.id}`,
+                    title: `Pedido #${orderData.id} - ${items.length} itens (EG Empório)`,
+                    description: "Compra realizada via site.",
+                    quantity: 1,
+                    unit_price: Number(valorLiquidoPedido.toFixed(2)), 
+                    picture_url: items[0]?.image || "" // Pega a imagem do primeiro item como capa
+                }];
 
                 const response = await fetch("/api/create-preference", {
                     method: "POST",
@@ -204,7 +201,7 @@ export default function Checkout() {
                         items: itemsParaMercadoPago,
                         payer: { name: nome, email: email },
                         orderId: orderData.id,
-                        shippingCost: valorFrete
+                        shippingCost: valorFrete // O MP vai somar isso ao unit_price
                     }),
                 });
 
