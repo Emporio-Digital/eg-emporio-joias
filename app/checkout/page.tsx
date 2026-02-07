@@ -67,7 +67,7 @@ export default function Checkout() {
     // ATRASO ARTIFICIAL PARA PARECER QUE FOI NO BANCO (UX)
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // REGRA MANUAL PARA O LANÇAMENTO (Funciona 100%)
+    // REGRA MANUAL PARA O LANÇAMENTO
     if (codigo === "LANCAMENTO15") {
         if (subtotal >= 99) {
             setDescontoCupom(15.00);
@@ -77,12 +77,10 @@ export default function Checkout() {
             setMsgCupom("⚠️ Este cupom requer compras acima de R$ 99,00");
         }
         setLoadingCupom(false);
-        return; // Encerra a função aqui, nem tenta ir no banco
+        return; // Encerra a função aqui
     }
 
-    // Se quiser adicionar outros no futuro via código, é só colocar outro IF aqui.
-    
-    // Fallback: Se não for o cupom manual, avisa que não existe
+    // Fallback
     setMsgCupom("❌ Cupom inválido ou expirado.");
     setDescontoCupom(0);
     setLoadingCupom(false);
@@ -139,11 +137,11 @@ export default function Checkout() {
                     customer_phone: whatsapp,
                     customer_cpf: cpf,
                     
-                    total_amount: totalFinal, // Salva o valor REAL final a ser pago
+                    total_amount: totalFinal, // Valor final real pago
                     status: 'pending', 
                     payment_method: metodoPagamento,
                     shipping_method: freteSelecionado,
-                    items: items, // Salva os itens originais
+                    items: items, 
 
                     address_full: fullAddress,
 
@@ -172,26 +170,27 @@ export default function Checkout() {
         });
 
         // =====================================================================
-        // INTEGRAÇÃO MERCADO PAGO - FIX SEGURO (LANÇAMENTO)
+        // INTEGRAÇÃO MERCADO PAGO - FIX FINAL (TOTAL ABSOLUTO)
         // =====================================================================
         if (metodoPagamento === "cartao") {
             try {
-                // Cálculo para o Mercado Pago:
-                // O MP soma (Preço do Item + Frete).
-                // Como o totalFinal já inclui o frete e os descontos, precisamos subtrair o frete 
-                // para definir o preço do "item pedido" e deixar o MP somar o frete novamente.
-                // Isso garante que Total Cobrado = Total Visualizado no Site.
-                const valorLiquidoPedido = Math.max(0, totalFinal - valorFrete);
+                // Estratégia: Enviar o valor TOTAL FINAL como preço do item.
+                // E zerar o frete na API do Mercado Pago.
+                // Motivo: Evitar cálculos negativos ou recusa de API quando (Preço - Desconto) fica muito baixo.
+                
+                const valorAbsolutoCobranca = Number(totalFinal.toFixed(2));
 
-                // Criamos um item único "Resumo do Pedido"
-                // Isso evita erros de API com valores negativos (cupons) e erros de arredondamento.
+                if (valorAbsolutoCobranca <= 0) {
+                     throw new Error("O valor total do pedido deve ser maior que zero.");
+                }
+
                 const itemsParaMercadoPago = [{
                     id: `ORDER-${orderData.id}`,
-                    title: `Pedido #${orderData.id} - ${items.length} itens (EG Empório)`,
-                    description: "Compra realizada via site.",
+                    title: `Pedido #${orderData.id} - EG Empório (Total c/ Frete)`,
+                    description: `Compra de ${items.length} itens. Entrega: ${freteSelecionado}`,
                     quantity: 1,
-                    unit_price: Number(valorLiquidoPedido.toFixed(2)), 
-                    picture_url: items[0]?.image || "" // Pega a imagem do primeiro item como capa
+                    unit_price: valorAbsolutoCobranca, 
+                    picture_url: items[0]?.image || ""
                 }];
 
                 const response = await fetch("/api/create-preference", {
@@ -201,9 +200,16 @@ export default function Checkout() {
                         items: itemsParaMercadoPago,
                         payer: { name: nome, email: email },
                         orderId: orderData.id,
-                        shippingCost: valorFrete // O MP vai somar isso ao unit_price
+                        shippingCost: 0 // IMPORTANTE: Enviamos 0 pois o valor já está somado no item acima
                     }),
                 });
+
+                // Verificação extra de erro HTTP
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("Erro API MP:", errorText);
+                    throw new Error("Falha na comunicação com o servidor de pagamento.");
+                }
 
                 const data = await response.json();
 
@@ -212,11 +218,11 @@ export default function Checkout() {
                     window.location.href = data.init_point;
                     return; 
                 } else {
-                    throw new Error("Não foi possível gerar o link de pagamento.");
+                    throw new Error("O Mercado Pago não retornou o link de pagamento.");
                 }
-            } catch (mpError) {
-                console.error(mpError);
-                throw new Error("Erro ao conectar com Mercado Pago.");
+            } catch (mpError: any) {
+                console.error("Erro MP Detalhado:", mpError);
+                throw new Error(mpError.message || "Erro ao gerar link de pagamento.");
             }
         }
         
@@ -225,7 +231,7 @@ export default function Checkout() {
 
     } catch (error: any) {
         console.error("Erro no checkout:", error);
-        alert("Não foi possível concluir o pedido: " + error.message);
+        alert("Ops! " + error.message);
         setLoading(false);
     } 
     
