@@ -30,6 +30,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
+  const [sku, setSku] = useState(''); // Estado para o Código/SKU
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('aneis');
   const [description, setDescription] = useState('');
@@ -65,6 +66,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
 
       if (data) {
         setTitle(data.title);
+        setSku(data.sku || ''); // Carrega o SKU do banco
         setPrice(data.price.toString());
         setCategory(data.category);
         setDescription(data.description || '');
@@ -166,6 +168,7 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
         .from('products')
         .update({
             title,
+            sku, // Salva o SKU no banco
             price: numericPrice,
             sale_price: salePrice,
             highlight: isHighlight,
@@ -208,15 +211,27 @@ export default function EditarProduto({ params }: { params: Promise<{ id: string
         <h1 className="text-2xl font-serif mb-6 text-white">Editar Produto #{productId}</h1>
 
         <form onSubmit={handleUpdate} className="space-y-6">
-          <div>
-            <label className={labelClass}>Nome</label>
-            <input 
-              required
-              type="text" 
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className={inputClass}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Nome</label>
+              <input 
+                required
+                type="text" 
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Código do Produto (SKU)</label>
+              <input 
+                type="text" 
+                value={sku}
+                onChange={e => setSku(e.target.value)}
+                placeholder="Ex: 2100002159381"
+                className={inputClass}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

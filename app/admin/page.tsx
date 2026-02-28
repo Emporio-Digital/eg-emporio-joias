@@ -197,6 +197,7 @@ export default function AdminDashboard() {
               <tr>
                 <th className="p-4 text-center">Ordem</th>
                 <th className="p-4">Foto</th>
+                <th className="p-4">Código</th>
                 <th className="p-4">Produto</th>
                 <th className="p-4">Preço</th>
                 <th className="p-4">Estoque</th>
@@ -214,6 +215,7 @@ export default function AdminDashboard() {
                     </div>
                   </td>
                   <td className="p-4"><div className="w-12 h-12 bg-neutral-800 rounded overflow-hidden"><img src={p.images?.[0] || '/placeholder.jpg'} alt="" className="w-full h-full object-cover" /></div></td>
+                  <td className="p-4 font-mono text-xs text-gray-400">{p.sku || '-'}</td>
                   <td className="p-4 font-medium text-white">{p.title}{p.highlight && <span className="ml-2 bg-yellow-900/50 text-yellow-500 text-[10px] px-2 py-0.5 rounded-full font-bold border border-yellow-500/30">DESTAQUE</span>}</td>
                   <td className="p-4">{p.sale_price ? (<div><span className="text-gray-500 line-through text-xs block">{formatCurrency(p.price)}</span><span className="text-green-400 font-bold">{formatCurrency(p.sale_price)}</span></div>) : (<span className="text-gray-300">{formatCurrency(p.price)}</span>)}</td>
                   <td className="p-4"><div className="flex items-center gap-2"><span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>{p.stock} un</span>{p.stock > 0 && p.stock < 3 && (<div className="tooltip" title="Estoque Baixo!"><Icons.Alert /></div>)}</div></td>

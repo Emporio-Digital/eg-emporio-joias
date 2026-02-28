@@ -33,6 +33,7 @@ export default function NewProduct() {
   const [loading, setLoading] = useState(false);
 
   const [title, setTitle] = useState('');
+  const [sku, setSku] = useState(''); // Estado para o Código/SKU
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('aneis');
   const [description, setDescription] = useState('');
@@ -132,6 +133,7 @@ export default function NewProduct() {
         .insert([
           {
             title,
+            sku, // Salva o SKU no banco
             price: numericPrice,
             sale_price: salePrice,
             highlight: isHighlight,
@@ -172,16 +174,28 @@ export default function NewProduct() {
         <h1 className="text-2xl font-serif mb-6 text-white">Novo Produto</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className={labelClass}>Nome do Produto</label>
-            <input 
-              required
-              type="text" 
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className={inputClass}
-              placeholder="Ex: Anel Solitário Ouro 18k"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Nome do Produto</label>
+              <input 
+                required
+                type="text" 
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                className={inputClass}
+                placeholder="Ex: Anel Solitário Ouro 18k"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Código do Produto (SKU)</label>
+              <input 
+                type="text" 
+                value={sku}
+                onChange={e => setSku(e.target.value)}
+                className={inputClass}
+                placeholder="Ex: 2100002159381"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
