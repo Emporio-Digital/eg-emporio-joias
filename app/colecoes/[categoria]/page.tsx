@@ -22,11 +22,12 @@ export default function DetalheColecao({ params }: { params: Promise<{ categoria
 
   useEffect(() => {
     async function fetchProducts() {
-      // Busca no banco onde category = categoriaSlug
+      // Busca no banco onde category = categoriaSlug E o produto está visível
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('category', categoriaSlug)
+        .eq('is_visible', true)
         .order('created_at', { ascending: false });
 
       if (!error && data) {

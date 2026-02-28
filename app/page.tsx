@@ -10,6 +10,7 @@ type Product = {
   price: number;
   sale_price?: number; 
   highlight?: boolean; 
+  is_visible?: boolean;
   images: string[];
   category: string;
   description: string;
@@ -41,6 +42,7 @@ export default function Home() {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('is_visible', true)
         .order('display_order', { ascending: true }) 
         .order('created_at', { ascending: false });
 

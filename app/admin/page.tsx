@@ -14,6 +14,7 @@ const Icons = {
   Trash: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
   Edit: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>,
   Eye: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>,
+  EyeOff: () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88L4.22 4.22m15.56 15.56l-5.66-5.66m0 0a10.05 10.05 0 002.338-2.918 9.97 9.97 0 001.563-3.029C16.268 7.943 12.478 5 8 5c-.732 0-1.437.08-2.12.233L4.22 4.22" /></svg>,
   Alert: () => <svg className="w-4 h-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>,
   Up: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>,
   Down: () => <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -132,6 +133,16 @@ export default function AdminDashboard() {
     }
   }
 
+  // === FUNÇÃO PARA OCULTAR/MOSTRAR PRODUTO ===
+  async function toggleVisibility(id: number, currentStatus: boolean) {
+    const { error } = await supabase.from('products').update({ is_visible: !currentStatus }).eq('id', id);
+    if (error) {
+        alert("Erro ao atualizar visibilidade: " + error.message);
+    } else {
+        fetchData();
+    }
+  }
+
   async function handleDeleteProduct(id: number) {
     if (!confirm('ATENÇÃO: Isso removerá o produto do site. Confirmar?')) return;
     await supabase.from('products').delete().eq('id', id);
@@ -206,7 +217,7 @@ export default function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-neutral-800">
               {displayedProducts.map((p, index) => (
-                <tr key={p.id} className="hover:bg-neutral-800/50 transition">
+                <tr key={p.id} className={`hover:bg-neutral-800/50 transition ${p.is_visible === false ? 'opacity-40 grayscale-[0.5]' : ''}`}>
                   <td className="p-4 text-center">
                     <div className="flex flex-col items-center gap-1">
                         <button onClick={() => moveProduct(index, 'up')} className="text-gray-500 hover:text-yellow-400 p-1 hover:bg-neutral-800 rounded"><Icons.Up /></button>
@@ -216,10 +227,21 @@ export default function AdminDashboard() {
                   </td>
                   <td className="p-4"><div className="w-12 h-12 bg-neutral-800 rounded overflow-hidden"><img src={p.images?.[0] || '/placeholder.jpg'} alt="" className="w-full h-full object-cover" /></div></td>
                   <td className="p-4 font-mono text-xs text-gray-400">{p.sku || '-'}</td>
-                  <td className="p-4 font-medium text-white">{p.title}{p.highlight && <span className="ml-2 bg-yellow-900/50 text-yellow-500 text-[10px] px-2 py-0.5 rounded-full font-bold border border-yellow-500/30">DESTAQUE</span>}</td>
+                  <td className="p-4 font-medium text-white">
+                    {p.title}
+                    {p.highlight && <span className="ml-2 bg-yellow-900/50 text-yellow-500 text-[10px] px-2 py-0.5 rounded-full font-bold border border-yellow-500/30">DESTAQUE</span>}
+                    {p.is_visible === false && <span className="ml-2 bg-neutral-700 text-gray-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-neutral-600 italic">OCULTO</span>}
+                  </td>
                   <td className="p-4">{p.sale_price ? (<div><span className="text-gray-500 line-through text-xs block">{formatCurrency(p.price)}</span><span className="text-green-400 font-bold">{formatCurrency(p.sale_price)}</span></div>) : (<span className="text-gray-300">{formatCurrency(p.price)}</span>)}</td>
                   <td className="p-4"><div className="flex items-center gap-2"><span className={`px-2 py-1 rounded text-xs font-bold ${p.stock > 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}`}>{p.stock} un</span>{p.stock > 0 && p.stock < 3 && (<div className="tooltip" title="Estoque Baixo!"><Icons.Alert /></div>)}</div></td>
                   <td className="p-4 flex justify-end gap-2">
+                    <button 
+                      onClick={() => toggleVisibility(p.id, p.is_visible !== false)} 
+                      className={`p-2 rounded transition flex items-center justify-center ${p.is_visible !== false ? 'text-gray-400 hover:bg-gray-800 hover:text-white' : 'text-yellow-500 bg-yellow-900/20 hover:bg-yellow-900/40'}`}
+                      title={p.is_visible !== false ? "Ocultar do Site" : "Mostrar no Site"}
+                    >
+                      {p.is_visible !== false ? <Icons.Eye /> : <Icons.EyeOff />}
+                    </button>
                     <Link href={`/admin/editar/${p.id}`} className="p-2 text-blue-400 hover:bg-blue-900/20 rounded transition flex items-center justify-center"><Icons.Edit /></Link>
                     <button onClick={() => handleDeleteProduct(p.id)} className="p-2 text-red-400 hover:bg-red-900/20 rounded transition"><Icons.Trash /></button>
                   </td>
