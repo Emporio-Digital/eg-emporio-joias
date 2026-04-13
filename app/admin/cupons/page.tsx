@@ -20,6 +20,20 @@ export default function AdminCupons() {
   const [pedidoMinimo, setPedidoMinimo] = useState("");
   const [criando, setCriando] = useState(false);
 
+  // ESTADO DO MODAL DE CONFIRMAÇÃO E ALERTAS PERSONALIZADOS
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDestructive: false,
+    isAlert: false
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, isDestructive = false, isAlert = false) => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, isDestructive, isAlert });
+  };
+
   // 1. EFEITO DE SEGURANÇA
   useEffect(() => {
     async function checkAdmin() {
@@ -60,7 +74,7 @@ export default function AdminCupons() {
   async function handleCriarCupom(e: React.FormEvent) {
     e.preventDefault();
     if (!codigo || !valorDesconto || !pedidoMinimo) {
-      alert("Preencha todos os campos.");
+      showConfirm('Atenção', 'Preencha todos os campos do formulário.', () => {}, true, true);
       return;
     }
 
@@ -77,28 +91,28 @@ export default function AdminCupons() {
 
       if (error) throw error;
 
-      alert("Cupom criado com sucesso!");
+      showConfirm('Sucesso!', 'Cupom criado com sucesso!', () => {}, false, true);
       setCodigo("");
       setValorDesconto("");
       setPedidoMinimo("");
       carregarCupons();
     } catch (error: any) {
-      alert("Erro ao criar cupom: " + error.message);
+      showConfirm('Erro', 'Erro ao criar cupom: ' + error.message, () => {}, true, true);
     } finally {
       setCriando(false);
     }
   }
 
   async function handleDeletar(id: number) {
-    if (!confirm("Tem certeza que deseja excluir este cupom?")) return;
-    
-    try {
-      const { error } = await supabase.from("coupons").delete().eq("id", id);
-      if (error) throw error;
-      carregarCupons();
-    } catch (error) {
-      alert("Erro ao excluir.");
-    }
+    showConfirm('Excluir Cupom', 'Tem certeza que deseja excluir este cupom? Esta ação é irreversível.', async () => {
+      try {
+        const { error } = await supabase.from("coupons").delete().eq("id", id);
+        if (error) throw error;
+        carregarCupons();
+      } catch (error) {
+        showConfirm('Erro', 'Erro ao excluir o cupom.', () => {}, true, true);
+      }
+    }, true);
   }
 
   async function handleToggleStatus(id: number, statusAtual: boolean) {
@@ -111,7 +125,7 @@ export default function AdminCupons() {
       if (error) throw error;
       carregarCupons();
     } catch (error) {
-      alert("Erro ao alterar status.");
+      showConfirm('Erro', 'Erro ao alterar status.', () => {}, true, true);
     }
   }
 
@@ -241,6 +255,46 @@ export default function AdminCupons() {
             </div>
           )}
         </div>
+
+        {/* === MODAL DE CONFIRMAÇÃO PERSONALIZADO === */}
+        {confirmDialog.isOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl scale-100 transition-transform">
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`p-2 rounded-full ${confirmDialog.isDestructive ? 'bg-red-900/30 text-red-500' : 'bg-green-900/30 text-green-500'}`}>
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <h3 className="text-xl font-serif text-white">{confirmDialog.title}</h3>
+              </div>
+              <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+                {confirmDialog.message}
+              </p>
+              <div className="flex justify-end gap-3">
+                {!confirmDialog.isAlert && (
+                  <button
+                    onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                    className="px-4 py-2 rounded-lg font-bold text-sm bg-neutral-800 text-gray-300 hover:bg-neutral-700 transition"
+                  >
+                    Cancelar
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    confirmDialog.onConfirm();
+                    setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                  }}
+                  className={`px-4 py-2 rounded-lg font-bold text-sm text-white transition shadow-lg ${
+                    confirmDialog.isDestructive 
+                    ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' 
+                    : 'bg-green-600 hover:bg-green-500 shadow-green-900/20'
+                  }`}
+                >
+                  {confirmDialog.isAlert ? 'OK' : 'Sim, Confirmar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

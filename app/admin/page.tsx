@@ -93,6 +93,19 @@ export default function AdminDashboard() {
 
   const [selectedCategory, setSelectedCategory] = useState('todos');
 
+  // ESTADO DO MODAL DE CONFIRMAÇÃO PERSONALIZADO
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    isDestructive: false
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, isDestructive = false) => {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, isDestructive });
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }), // Evita arrastar ao clicar sem querer
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -190,64 +203,57 @@ export default function AdminDashboard() {
   }
 
   async function handleMarkDelivered(id: number) {
-    if (!confirm('Confirmar entrega do pedido?')) return;
-    const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', id);
-    if (error) {
-      alert("Erro ao atualizar: " + error.message);
-    } else {
-      fetchData();
-    }
+    showConfirm('Confirmar Entrega', 'Tem certeza que deseja marcar este pedido como entregue?', async () => {
+      const { error } = await supabase.from('orders').update({ status: 'delivered' }).eq('id', id);
+      if (!error) fetchData();
+    });
   }
 
-  // === NOVA FUNÇÃO: CANCELAR PEDIDO E VOLTAR ESTOQUE ===
-  async function handleCancelOrder(order: any) {
-    if (!confirm('ATENÇÃO: Cancelar pedido e devolver itens ao estoque?')) return;
-
-    // 1. Devolve Estoque (Loop pelos itens)
-    if (order.items && Array.isArray(order.items)) {
-      for (const item of order.items) {
-        await supabase.rpc('increment_stock', { product_id: item.id, quantity: item.quantity });
+  async function handleConfirmPayment(id: number) {
+    showConfirm('Confirmar Pagamento', 'Confirma o recebimento do pagamento deste pedido?', async () => {
+      const { error } = await supabase.from('orders').update({ payment_status: 'paid' }).eq('id', id);
+      if (!error) {
+        fetchData();
+        setSelectedOrder(null);
       }
-    }
-
-    // 2. Marca como Cancelado
-    const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
-
-    if (error) {
-      alert("Erro ao cancelar: " + error.message);
-    } else {
-      alert("Pedido cancelado e estoque reposto.");
-      setSelectedOrder(null);
-      fetchData();
-    }
+    });
   }
 
-  // === FUNÇÃO PARA OCULTAR/MOSTRAR PRODUTO ===
+  async function handleCancelOrder(order: any) {
+    showConfirm('Cancelar Pedido', 'Atenção: Cancelar pedido e devolver todos os itens ao estoque?', async () => {
+      if (order.items && Array.isArray(order.items)) {
+        for (const item of order.items) {
+          await supabase.rpc('increment_stock', { product_id: item.id, quantity: item.quantity });
+        }
+      }
+      const { error } = await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id);
+      if (!error) {
+        setSelectedOrder(null);
+        fetchData();
+      }
+    }, true); // <- "true" avisa o modal que é uma ação destrutiva (fica vermelho)
+  }
+
   async function toggleVisibility(id: number, currentStatus: boolean) {
     const { error } = await supabase.from('products').update({ is_visible: !currentStatus }).eq('id', id);
-    if (error) {
-      alert("Erro ao atualizar visibilidade: " + error.message);
-    } else {
-      fetchData();
-    }
+    if (!error) fetchData();
   }
 
   async function handleDeleteProduct(id: number) {
-    if (!confirm('ATENÇÃO: Isso removerá o produto do site. Confirmar?')) return;
-    await supabase.from('products').delete().eq('id', id);
-    fetchData();
+    showConfirm('Excluir Produto', 'Essa ação removerá o produto do site permanentemente. Continuar?', async () => {
+      await supabase.from('products').delete().eq('id', id);
+      fetchData();
+    }, true);
   }
 
-  // === NOVA FUNÇÃO: EXCLUIR PEDIDO (LIMPEZA) ===
   async function handleDeleteOrder(id: number) {
-    if (!confirm('ATENÇÃO: Excluir este pedido permanentemente? Essa ação não pode ser desfeita.')) return;
-    const { error } = await supabase.from('orders').delete().eq('id', id);
-    if (error) {
-      alert("Erro ao excluir: " + error.message);
-    } else {
-      fetchData();
-      setSelectedOrder(null);
-    }
+    showConfirm('Excluir Pedido', 'Excluir este pedido permanentemente? Essa ação não pode ser desfeita.', async () => {
+      const { error } = await supabase.from('orders').delete().eq('id', id);
+      if (!error) {
+        fetchData();
+        setSelectedOrder(null);
+      }
+    }, true);
   }
 
   const filteredOrders = orders.filter(order => {
@@ -386,15 +392,27 @@ export default function AdminDashboard() {
                     <td className="p-4 text-gray-300">{new Date(order.created_at).toLocaleDateString()}</td>
                     <td className="p-4 font-medium text-white">{order.customer_name}</td>
                     <td className="p-4">
-                      <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${order.status === 'delivered' ? 'bg-green-900/30 text-green-400' :
-                        order.status === 'paid' ? 'bg-blue-900/30 text-blue-400' :
-                          order.status === 'cancelled' ? 'bg-red-900/30 text-red-400' :
-                            'bg-yellow-900/30 text-yellow-500'
-                        }`}>
-                        {order.status === 'pending' ? 'Pendente' :
-                          order.status === 'delivered' ? 'Entregue' :
-                            order.status === 'cancelled' ? 'Cancelado' : order.status}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        {/* Sinalizador Financeiro (Bolinha) */}
+                        <div
+                          title={order.payment_status === 'paid' ? 'Pagamento Confirmado pelo Banco' : 'Pagamento ainda não identificado'}
+                          className={`w-3 h-3 rounded-full shrink-0 shadow-lg ${order.payment_status === 'paid'
+                              ? 'bg-green-500 shadow-green-500/40'
+                              : 'bg-yellow-500 animate-pulse shadow-yellow-500/40'
+                            }`}
+                        ></div>
+
+                        {/* Status Logístico (Original) */}
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${order.status === 'delivered' ? 'bg-green-900/30 text-green-400' :
+                            order.status === 'paid' ? 'bg-blue-900/30 text-blue-400' :
+                              order.status === 'cancelled' ? 'bg-red-900/30 text-red-400' :
+                                'bg-yellow-900/30 text-yellow-500'
+                          }`}>
+                          {order.status === 'pending' ? 'Pendente' :
+                            order.status === 'delivered' ? 'Entregue' :
+                              order.status === 'cancelled' ? 'Cancelado' : order.status}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-4 font-bold text-white">{formatCurrency(order.total_amount)}</td>
                     <td className="p-4 text-right flex items-center justify-end gap-2">
@@ -475,7 +493,22 @@ export default function AdminDashboard() {
                 <h3 className="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-wider">Entrega & Pagamento</h3>
                 <p><span className="text-gray-400">Método de Envio:</span> {selectedOrder.shipping_method}</p>
                 <p><span className="text-gray-400">Pagamento:</span> {selectedOrder.payment_method === 'pix' ? 'Pix via WhatsApp' : 'Mercado Pago (Cartão)'}</p>
-                <p><span className="text-gray-400">Total:</span> {formatCurrency(selectedOrder.total_amount)}</p>
+                <p className="flex items-center gap-2 pb-2">
+                  <span className="text-gray-400">Status Financeiro:</span>
+                  <span className={`font-bold ${selectedOrder.payment_status === 'paid' ? 'text-green-400' : 'text-yellow-500'}`}>
+                    {selectedOrder.payment_status === 'paid' ? 'PAGO' : 'PENDENTE'}
+                  </span>
+                </p>
+
+                <p>
+                  <span className="text-gray-400">Cupom:</span>{' '}
+                  {selectedOrder.applied_coupon ? (
+                    <span className="text-yellow-500 font-bold uppercase tracking-wider">{selectedOrder.applied_coupon}</span>
+                  ) : (
+                    <span className="text-gray-600 italic">Nenhum</span>
+                  )}
+                </p>
+                <p className="mt-2 pt-2 border-t border-neutral-700/50"><span className="text-gray-400">Total:</span> <span className="font-bold text-white text-lg">{formatCurrency(selectedOrder.total_amount)}</span></p>
               </div>
               <div className="bg-neutral-800 p-4 rounded-lg">
                 <h3 className="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-wider">Itens Comprados</h3>
@@ -488,26 +521,45 @@ export default function AdminDashboard() {
                   ))}
                 </ul>
               </div>
-            </div>
-            <div className="mt-6 flex justify-between">
-              <button
-                onClick={() => handleDeleteOrder(selectedOrder.id)}
-                className="bg-red-900/20 text-red-500 border border-red-900/50 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-900/40 flex items-center gap-2"
-              >
-                <Icons.Trash /> Excluir
-              </button>
 
-              {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
-                <button
-                  onClick={() => handleCancelOrder(selectedOrder)}
-                  className="bg-red-900/30 text-red-400 border border-red-900/50 px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-900/50"
-                >
-                  Cancelar Pedido
-                </button>
+              {/* NOVO LOCAL DO BOTAO DE PAGAMENTO (MENOR E ALINHADO) */}
+              {selectedOrder.payment_status !== 'paid' && (
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => handleConfirmPayment(selectedOrder.id)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-xs hover:bg-green-500 transition shadow uppercase tracking-wider"
+                  >
+                    Confirmar Pagamento
+                  </button>
+                </div>
               )}
+
+            </div>
+            <div className="mt-8 pt-5 border-t border-neutral-800 flex flex-wrap-reverse sm:flex-nowrap justify-between items-center gap-4">
+              {/* Lado Esquerdo - Ações Destrutivas */}
+              <div className="flex flex-1 gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => handleDeleteOrder(selectedOrder.id)}
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider text-red-500 bg-transparent border border-red-900/50 hover:bg-red-900/20 hover:text-red-400 transition-all flex-1 sm:flex-none"
+                  title="Excluir Permanentemente"
+                >
+                  <Icons.Trash /> Excluir
+                </button>
+
+                {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
+                  <button
+                    onClick={() => handleCancelOrder(selectedOrder)}
+                    className="px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider text-orange-400 bg-orange-900/10 border border-orange-900/30 hover:bg-orange-900/30 transition-all flex-1 sm:flex-none"
+                  >
+                    Cancelar Pedido
+                  </button>
+                )}
+              </div>
+
+              {/* Lado Direito - Ação Principal de Fechar */}
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="bg-white text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-200 ml-auto"
+                className="px-8 py-2.5 rounded-lg font-bold text-sm text-black bg-white hover:bg-gray-200 transition-all shadow-lg w-full sm:w-auto"
               >
                 Fechar
               </button>
@@ -515,6 +567,45 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* === MODAL DE CONFIRMAÇÃO PERSONALIZADO === */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl scale-100 transition-transform">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`p-2 rounded-full ${confirmDialog.isDestructive ? 'bg-red-900/30 text-red-500' : 'bg-yellow-900/30 text-yellow-500'}`}>
+                <Icons.Alert />
+              </div>
+              <h3 className="text-xl font-serif text-white">{confirmDialog.title}</h3>
+            </div>
+            <p className="text-gray-400 text-sm mb-8 leading-relaxed">
+              {confirmDialog.message}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                className="px-4 py-2 rounded-lg font-bold text-sm bg-neutral-800 text-gray-300 hover:bg-neutral-700 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                }}
+                className={`px-4 py-2 rounded-lg font-bold text-sm text-white transition shadow-lg ${
+                  confirmDialog.isDestructive 
+                  ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' 
+                  : 'bg-green-600 hover:bg-green-500 shadow-green-900/20'
+                }`}
+              >
+                Sim, Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

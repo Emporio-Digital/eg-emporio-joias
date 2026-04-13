@@ -27,7 +27,6 @@ export async function POST(request: Request) {
     const result = await preference.create({
       body: {
         items: mpItems,
-        // Frete enviado separadamente
         shipments: {
             cost: Number(shippingCost),
             mode: "not_specified",
@@ -37,13 +36,17 @@ export async function POST(request: Request) {
           email: payer.email,
         },
         external_reference: orderId.toString(),
+        // Ajuste: Redirecionamento para a nova rota dinâmica /sucesso/[id]
         back_urls: {
-          success: `${process.env.NEXT_PUBLIC_BASE_URL}/sucesso?order_id=${orderId}`,
+          success: `${process.env.NEXT_PUBLIC_BASE_URL}/sucesso/${orderId}`,
           failure: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout?error=failure`,
-          pending: `${process.env.NEXT_PUBLIC_BASE_URL}/sucesso?order_id=${orderId}&status=pending`,
+          pending: `${process.env.NEXT_PUBLIC_BASE_URL}/sucesso/${orderId}?status=pending`,
         },
-        auto_return: "approved",
-        statement_descriptor: "EG EMPORIO", 
+        // Ajuste: "all" força o retorno mais rápido para o site
+        auto_return: "all", 
+        // NOVO: Endereço que o Mercado Pago vai avisar quando o pagamento for aprovado
+        notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/mercadopago`,
+        statement_descriptor: "EG EMPORIO JOIAS", 
       },
     });
 
