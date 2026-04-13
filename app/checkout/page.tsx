@@ -205,62 +205,51 @@ export default function Checkout() {
         });
 
         // =====================================================================
-        // INTEGRAÇÃO MERCADO PAGO - FIX FINAL (TOTAL ABSOLUTO)
+        // INTEGRAÇÃO MERCADO PAGO - FLUXO PROTEGIDO
         // =====================================================================
         if (metodoPagamento === "cartao") {
-            try {
-                // Estratégia: Enviar o valor TOTAL FINAL como preço do item.
-                // E zerar o frete na API do Mercado Pago.
-                // Motivo: Evitar cálculos negativos ou recusa de API quando (Preço - Desconto) fica muito baixo.
-                
-                const valorAbsolutoCobranca = Number(totalFinal.toFixed(2));
+            const valorAbsolutoCobranca = Number(totalFinal.toFixed(2));
 
-                if (valorAbsolutoCobranca <= 0) {
-                     throw new Error("O valor total do pedido deve ser maior que zero.");
-                }
+            if (valorAbsolutoCobranca <= 0) {
+                 throw new Error("O valor total do pedido deve ser maior que zero.");
+            }
 
-                const itemsParaMercadoPago = [{
-                    id: `ORDER-${orderData.id}`,
-                    title: `Pedido #${orderData.id} - EG Empório (Total c/ Frete)`,
-                    description: `Compra de ${items.length} itens. Entrega: ${freteSelecionado}`,
-                    quantity: 1,
-                    unit_price: valorAbsolutoCobranca, 
-                    picture_url: items[0]?.image || ""
-                }];
+            const itemsParaMercadoPago = [{
+                id: `ORDER-${orderData.id}`,
+                title: `Pedido #${orderData.id} - EG Empório`,
+                description: `Compra de ${items.length} itens. Entrega: ${freteSelecionado}`,
+                quantity: 1,
+                unit_price: valorAbsolutoCobranca, // Este campo agora é lido corretamente pela sua nova API
+                picture_url: items[0]?.image || ""
+            }];
 
-                const response = await fetch("/api/create-preference", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        items: itemsParaMercadoPago,
-                        payer: { name: nome, email: email },
-                        orderId: orderData.id,
-                        shippingCost: 0 // IMPORTANTE: Enviamos 0 pois o valor já está somado no item acima
-                    }),
-                });
+            const response = await fetch("/api/create-preference", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    items: itemsParaMercadoPago,
+                    payer: { name: nome, email: email },
+                    orderId: orderData.id,
+                    shippingCost: 0 
+                }),
+            });
 
-                // Verificação extra de erro HTTP
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error("Erro API MP:", errorText);
-                    throw new Error("Falha na comunicação com o servidor de pagamento.");
-                }
+            if (!response.ok) {
+                throw new Error("O servidor de pagamento não respondeu. Tente novamente em instantes.");
+            }
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (data.init_point) {
-                    clearCart();
-                    window.location.href = data.init_point;
-                    return; 
-                } else {
-                    throw new Error("O Mercado Pago não retornou o link de pagamento.");
-                }
-            } catch (mpError: any) {
-                console.error("Erro MP Detalhado:", mpError);
-                throw new Error(mpError.message || "Erro ao gerar link de pagamento.");
+            if (data.init_point) {
+                clearCart(); // SÓ limpa o carrinho se o link de pagamento foi gerado
+                window.location.href = data.init_point;
+                return; // FINALIZA AQUI para não mostrar a tela de sucesso do site antes da hora
+            } else {
+                throw new Error("Não foi possível gerar o link de pagamento. Tente novamente.");
             }
         }
         
+        // Se chegou aqui, é porque o método é PIX (já que o Cartão deu 'return' acima)
         clearCart();
         setSuccess(true);
 

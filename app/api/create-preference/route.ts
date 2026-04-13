@@ -12,15 +12,16 @@ export async function POST(request: Request) {
 
     const preference = new Preference(client);
 
-    // Mapeia apenas os produtos reais
+    // Mapeia os produtos (Suporte vitalício: aceita o novo 'unit_price' do Checkout ou o padrão antigo)
     const mpItems = items.map((item: any) => ({
       id: item.id,
       title: item.title,
       description: item.title, 
       quantity: Number(item.quantity),
-      unit_price: Number(item.sale_price || item.price),
+      // Lógica robusta: pega o preço já calculado ou busca nos campos de fallback
+      unit_price: Number(item.unit_price || item.sale_price || item.price),
       currency_id: "BRL",
-      picture_url: item.image,
+      picture_url: item.image || item.picture_url,
     }));
 
     const result = await preference.create({
