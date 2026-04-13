@@ -51,7 +51,7 @@ export default function Checkout() {
   const totalFinal = totalCalculado > 0 ? totalCalculado : 0;
 
   // =================================================================
-  // SOLUÇÃO DE EMERGÊNCIA: VALIDAÇÃO LOCAL DO CUPOM
+  // NOVA VALIDAÇÃO DINÂMICA DE CUPONS (SUPABASE)
   // =================================================================
   const aplicarCupom = async () => {
     setMsgCupom("");
@@ -62,27 +62,62 @@ export default function Checkout() {
     const codigo = cupomInput.trim().toUpperCase();
     setLoadingCupom(true);
     
-    console.log("Validando cupom:", codigo);
+    console.log("Validando cupom no banco de dados:", codigo);
 
-    // ATRASO ARTIFICIAL PARA PARECER QUE FOI NO BANCO (UX)
-    await new Promise(resolve => setTimeout(resolve, 500));
+    try {
+        // 1. Busca o cupom no Supabase (precisa existir e estar ativo)
+        const { data, error } = await supabase
+            .from('coupons')
+            .select('*')
+            .eq('code', codigo)
+            .eq('is_active', true)
+            .single();
 
-    // REGRA MANUAL PARA O LANÇAMENTO
-    if (codigo === "LANCAMENTO15") {
-        if (subtotal >= 99) {
-            setDescontoCupom(15.00);
-            setMsgCupom("✅ Cupom de R$ 15,00 aplicado com sucesso!");
-        } else {
+        // 2. Se deu erro ou o cupom não existe/está desativado
+        if (error || !data) {
+            setMsgCupom("❌ Cupom inválido, inativo ou expirado.");
             setDescontoCupom(0);
-            setMsgCupom("⚠️ Este cupom requer compras acima de R$ 99,00");
+            setLoadingCupom(false);
+            return;
         }
-        setLoadingCupom(false);
-        return; // Encerra a função aqui
+
+        // 3. Valida se o pedido atingiu o valor mínimo exigido pelo cupom
+        if (subtotal < data.min_order_value) {
+            setMsgCupom(`⚠️ Este cupom requer compras acima de R$ ${data.min_order_value.toFixed(2).replace('.', ',')}`);
+            setDescontoCupom(0);
+        } else {
+            // 4. Sucesso! Aplica o desconto exato cadastrado no painel Admin
+            setDescontoCupom(data.discount_value);
+            // === TRAVA ESPECIAL: CUPOM DE BOAS-VINDAS (1 POR CPF) ===
+        if (codigo === 'BEMVINDO15') {
+            if (!cpf || cpf.length < 11) {
+                setMsgCupom("⚠️ Por favor, preencha seu CPF nos 'Dados Pessoais' antes de aplicar este cupom.");
+                setLoadingCupom(false);
+                return;
+            }
+
+            const { data: pedidosExistentes } = await supabase
+                .from('orders')
+                .select('id')
+                .eq('customer_cpf', cpf)
+                .in('status', ['paid', 'shipped', 'delivered'])
+                .limit(1);
+
+            if (pedidosExistentes && pedidosExistentes.length > 0) {
+                setMsgCupom("❌ Este cupom de boas-vindas já foi utilizado em uma compra anterior vinculada a este CPF.");
+                setDescontoCupom(0);
+                setLoadingCupom(false);
+                return;
+            }
+        }
+        // ========================================================
+            setMsgCupom(`✅ Cupom de R$ ${data.discount_value.toFixed(2).replace('.', ',')} aplicado com sucesso!`);
+        }
+    } catch (err) {
+        console.error("Erro técnico ao buscar cupom:", err);
+        setMsgCupom("❌ Erro ao comunicar com o servidor.");
     }
 
-    // Fallback
-    setMsgCupom("❌ Cupom inválido ou expirado.");
-    setDescontoCupom(0);
     setLoadingCupom(false);
   };
 
