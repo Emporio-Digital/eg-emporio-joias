@@ -38,7 +38,7 @@ export default function Footer() {
             <div className="h-[1px] w-20 bg-white/10"></div>
 
             <p className="text-[10px] text-gray-500 font-medium">
-                © EG Empório Joias.
+                © EG Empório Digital.
             </p>
           </div>
         </div>
