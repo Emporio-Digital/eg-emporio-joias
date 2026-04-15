@@ -79,7 +79,7 @@ export default function PaginaSucesso() {
     ];
 
     const mensagem = linhas.filter(l => l !== '').join(quebra);
-    return `https://wa.me/5511916053292?text=${encodeURIComponent(mensagem)}`;
+    return `https://wa.me/5511952835361?text=${encodeURIComponent(mensagem)}`;
   };
 
   if (loading) return (

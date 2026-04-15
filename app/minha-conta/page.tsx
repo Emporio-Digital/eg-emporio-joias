@@ -102,7 +102,7 @@ export default function MinhaConta() {
                 {orders.map((order) => {
                     // LINK DO WHATSAPP COM ID DINÂMICO
                     const message = encodeURIComponent(`Olá vim pelo site de Joias e preciso de ajuda com o pedido #${order.id}`);
-                    const whatsappLink = `https://wa.me/5511916053292?text=${message}`;
+                    const whatsappLink = `https://wa.me/5511952835361?text=${message}`;
 
                     return (
                         <div key={order.id} className="bg-neutral-900/60 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
