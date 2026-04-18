@@ -352,7 +352,7 @@ export default function AdminDashboard() {
 
       {/* TELA DE VENDAS */}
       {activeTab === 'vendas' && (
-        <div className="bg-neutral-900 rounded-xl shadow p-6 border border-neutral-800">
+        <div className="bg-neutral-900 rounded-xl shadow p-6 border border-neutral-800 overflow-x-auto">
           <div className="flex flex-wrap gap-4 mb-6 bg-neutral-800 p-4 rounded-lg border border-neutral-700">
             <div className="flex flex-col">
               <label className="text-xs font-bold text-gray-400 mb-1">Data do Pedido</label>
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-neutral-800 text-gray-400 uppercase text-xs font-bold">
               <tr>
                 <th className="p-4">ID</th>

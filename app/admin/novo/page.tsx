@@ -291,7 +291,7 @@ export default function NewProduct() {
                         <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${isHighlight ? 'translate-x-6' : 'translate-x-0'}`}></div>
                     </div>
                     <span className="text-sm font-medium text-gray-300">
-                        Destaque?
+                        Dest.
                     </span>
                 </label>
             </div>
