@@ -49,7 +49,7 @@ export default function PaginaSucesso() {
     const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const listaItens = order.items.map((i: any) => 
-        `- ${i.quantity}x ${i.title}${i.size ? `${quebra}  Opção/Tam: ${i.size}` : ''}`
+        `- ${i.quantity}x ${i.title}${i.size ? `${quebra}  Tam: ${i.size}` : ''}`
     ).join(quebra);
 
     const linhas = [
