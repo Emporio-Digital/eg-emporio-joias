@@ -42,9 +42,9 @@ export default function PaginaSucesso() {
     // 3. Cálculo do Desconto Pix (5% sobre o subtotal) - Apenas se o método for pix
     const valorDescontoPix = order.payment_method === 'pix' ? subtotal * 0.05 : 0;
 
-    // 4. Valor do Cupom (Buscamos no banco se houver valor salvo ou se houver código)
-    // Se o cupom for o BEMVINDO15, o valor é 15.00 fixo.
-    const valorCupom = order.applied_coupon === 'BEMVINDO15' ? 15.00 : 0;
+    // 4. Valor do Cupom (Cálculo matemático reverso para aceitar qualquer cupom dinâmico)
+    let valorCupom = order.applied_coupon ? (subtotal + valorFrete - valorDescontoPix) - order.total_amount : 0;
+    if (valorCupom < 0.01) valorCupom = 0; // Previne quebra de dízima flutuante
 
     const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
@@ -161,7 +161,8 @@ export default function PaginaSucesso() {
                 const subtotal = order.items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
                 const valorFrete = order.shipping_method === 'motoboy' ? 25.00 : 35.00;
                 const valorDescontoPix = order.payment_method === 'pix' ? subtotal * 0.05 : 0;
-                const valorCupom = order.applied_coupon === 'BEMVINDO15' ? 15.00 : 0;
+                let valorCupom = order.applied_coupon ? (subtotal + valorFrete - valorDescontoPix) - order.total_amount : 0;
+                if (valorCupom < 0.01) valorCupom = 0;
                 const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
                 return (

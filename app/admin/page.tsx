@@ -517,9 +517,9 @@ export default function AdminDashboard() {
                     <li key={idx} className="py-3 flex justify-between items-start border-b border-neutral-700/50 last:border-0">
                       <div className="flex flex-col gap-1">
                         <span className="text-white font-medium">{item.title} <span className="text-gray-500 ml-1 text-xs">x{item.quantity}</span></span>
-                        {item.size && (
+                        {(item.size || item.tamanho) && (
                           <span className="text-[9px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded w-fit font-black uppercase tracking-widest italic">
-                            Tamanho Escolhido: {item.size}
+                            Tamanho Escolhido: {item.size || item.tamanho}
                           </span>
                         )}
                       </div>

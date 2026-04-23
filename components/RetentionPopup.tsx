@@ -49,13 +49,19 @@ export default function RetentionPopup() {
                 <Image src="/bg-joias.png" alt="EG Logo Background" fill className="object-contain" />
              </div>
              
-             <div className="relative z-10 flex flex-col items-center">
-                <div className="w-16 h-16 border border-yellow-500/40 rounded-full flex items-center justify-center mb-4">
-                    <span className="text-yellow-500 text-2xl font-serif">EG</span>
+             <div className="relative z-10 w-full flex flex-row items-center justify-center py-10">
+                <div className="flex-1 flex justify-end pr-14 md:pr-8">
+                    <div className="w-16 h-16 border border-yellow-500/40 rounded-full flex items-center justify-center shrink-0">
+                        <span className="text-yellow-500 text-2xl font-serif">EG</span>
+                    </div>
                 </div>
-                <div className="h-[1px] w-12 bg-yellow-500/50 mb-4"></div>
-                <span className="text-yellow-500 text-4xl font-serif italic">R$15</span>
-                <p className="text-white text-[10px] uppercase tracking-[0.4em] mt-2 font-bold">OFF</p>
+                
+                <div className="w-[1px] h-16 bg-yellow-500/50 shrink-0"></div>
+                
+                <div className="flex-1 flex flex-col items-start pl-14 md:pl-8">
+                    <span className="text-yellow-500 text-4xl font-serif italic leading-none">R$15</span>
+                    <p className="text-white text-[10px] uppercase tracking-[0.4em] mt-1 font-bold">OFF</p>
+                </div>
              </div>
              
              {/* Brilho Decorativo */}

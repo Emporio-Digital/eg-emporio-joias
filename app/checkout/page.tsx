@@ -13,7 +13,7 @@ export default function Checkout() {
     const [orderId, setOrderId] = useState<number | null>(null);
 
     // Snapshot do pedido
-    const [savedOrder, setSavedOrder] = useState<{ items: any[], total: number, freight: number, discountPix: number, discountCoupon: number } | null>(null);
+    const [savedOrder, setSavedOrder] = useState<{ items: any[], total: number, freight: number, discountPix: number, discountCoupon: number, couponName: string } | null>(null);
 
     // Dados Pessoais
     const [nome, setNome] = useState("");
@@ -218,7 +218,8 @@ export default function Checkout() {
                 total: totalFinal,
                 freight: valorFrete,
                 discountPix: valorDescontoPix,
-                discountCoupon: descontoCupom
+                discountCoupon: descontoCupom,
+                couponName: descontoCupom > 0 ? cupomInput.trim().toUpperCase() : ""
             });
 
             // 3. MERCADO PAGO
@@ -267,9 +268,11 @@ export default function Checkout() {
         const quebra = "\n";
         const traco = "--------------------------------";
 
-        const listaItens = savedOrder.items.map(i =>
-            `- ${i.quantity}x ${i.title}${ (i as any).size ? `${quebra}  OPÇÃO/TAM: ${(i as any).size}` : '' }`
-        ).join(quebra);
+        const listaItens = savedOrder.items.map(i => {
+        // Captura o tamanho independente de estar como 'size' ou 'tamanho'
+        const itemSize = i.size || (i as any).tamanho;
+        return `- ${i.quantity}x ${i.title}${itemSize ? `\n  ↳ TAMANHO: ${itemSize}` : ''}`;
+    }).join("\n");
 
         const fmt = (val: number) => val.toFixed(2).replace('.', ',');
 
@@ -280,7 +283,7 @@ export default function Checkout() {
         ];
 
         if (savedOrder.discountCoupon > 0) {
-            linhasFinanceiras.push(`Cupom Promocional (${cupomInput}): - R$ ${fmt(savedOrder.discountCoupon)}`);
+            linhasFinanceiras.push(`Cupom Promocional (${savedOrder.couponName}): - R$ ${fmt(savedOrder.discountCoupon)}`);
         }
 
         if (savedOrder.discountPix > 0) {

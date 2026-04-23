@@ -2,20 +2,19 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-// Tipagem do item no carrinho
 type CartItem = {
   id: number;
   title: string;
   price: number;
   image: string;
   quantity: number;
+  size?: string | null; // Adicionado
 };
 
-// Tipagem das funções do contexto
 type CartContextType = {
   items: CartItem[];
   addToCart: (product: any) => void;
-  removeFromCart: (id: number) => void;
+  removeFromCart: (id: number, size?: string | null) => void; // Melhorado
   clearCart: () => void;
   cartOpen: boolean;
   setCartOpen: (open: boolean) => void;
@@ -30,44 +29,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [total, setTotal] = useState(0);
 
-  // Carregar do LocalStorage ao iniciar (Persistência)
   useEffect(() => {
     const saved = localStorage.getItem('eg_cart');
-    if (saved) setItems(JSON.parse(saved));
+    if (saved) {
+      try {
+        setItems(JSON.parse(saved));
+      } catch (e) {
+        setItems([]);
+      }
+    }
   }, []);
 
-  // Salvar no LocalStorage sempre que mudar
   useEffect(() => {
     localStorage.setItem('eg_cart', JSON.stringify(items));
-    
-    // Calcula total
     const newTotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     setTotal(newTotal);
   }, [items]);
 
   function addToCart(product: any) {
     setItems(prev => {
-      const existing = prev.find(i => i.id === product.id);
+      // Verifica se já existe o mesmo item COM o mesmo tamanho
+      const existing = prev.find(i => i.id === product.id && i.size === product.size);
       
-      // Se já existe, aumenta quantidade
       if (existing) {
-        return prev.map(i => i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+        return prev.map(i => 
+          (i.id === product.id && i.size === product.size) 
+          ? { ...i, quantity: i.quantity + 1 } 
+          : i
+        );
       }
       
-      // Se é novo, adiciona
       return [...prev, {
         id: product.id,
         title: product.title,
-        price: product.sale_price || product.price, // Pega o preço promocional se existir
-        image: product.images?.[0] || '', // Pega a primeira imagem
-        quantity: 1
+        price: product.sale_price || product.price,
+        image: product.images?.[0] || product.image || '',
+        quantity: 1,
+        size: product.size || null
       }];
     });
-    setCartOpen(true); // Abre a gaveta automaticamente
+    setCartOpen(true);
   }
 
-  function removeFromCart(id: number) {
-    setItems(prev => prev.filter(item => item.id !== id));
+  function removeFromCart(id: number, size?: string | null) {
+    setItems(prev => prev.filter(item => !(item.id === id && item.size === size)));
   }
 
   function clearCart() {
@@ -76,13 +81,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider value={{ 
-      items, 
-      addToCart, 
-      removeFromCart, 
-      clearCart, 
-      cartOpen, 
-      setCartOpen, 
-      total, 
+      items, addToCart, removeFromCart, clearCart, 
+      cartOpen, setCartOpen, total, 
       cartCount: items.reduce((acc, item) => acc + item.quantity, 0) 
     }}>
       {children}
