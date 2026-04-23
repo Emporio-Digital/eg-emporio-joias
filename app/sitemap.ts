@@ -1,30 +1,32 @@
 import { MetadataRoute } from 'next'
-import { supabase } from '@/lib/supabase' // Caminho conforme seu print
+import { supabase } from '@/lib/supabase'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://joias.egemporiodigital.com.br'
 
-  // 1. Buscar todos os produtos ativos do Supabase
+  // 1. Busca os dados reais do banco (Apenas colunas confirmadas no seu dossiê)
   const { data: products } = await supabase
     .from('products')
-    .select('id, updated_at')
+    .select('id, category')
 
-  // 2. Buscar categorias únicas (para gerar links de coleções)
-  const { data: categoriesData } = await supabase
-    .from('products')
-    .select('category')
-  
-  const uniqueCategories = Array.from(new Set(categoriesData?.map(p => p.category)))
+  // Se por algum motivo o banco falhar, retornamos ao menos a Home e Sobre
+  if (!products || products.length === 0) {
+    return [
+      { url: baseUrl, lastModified: new Date() },
+      { url: `${baseUrl}/sobre`, lastModified: new Date() },
+    ]
+  }
 
-  // Mapear links de produtos
-  const productEntries: MetadataRoute.Sitemap = (products || []).map((product) => ({
+  // 2. Gerar links de Produtos (/produto/[id])
+  const productEntries: MetadataRoute.Sitemap = products.map((product) => ({
     url: `${baseUrl}/produto/${product.id}`,
-    lastModified: product.updated_at || new Date(),
+    lastModified: new Date(),
     changeFrequency: 'daily',
     priority: 0.8,
   }))
 
-  // Mapear links de coleções
+  // 3. Gerar links de Coleções (/colecoes/[categoria])
+  const uniqueCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
   const categoryEntries: MetadataRoute.Sitemap = uniqueCategories.map((category) => ({
     url: `${baseUrl}/colecoes/${category}`,
     lastModified: new Date(),
@@ -32,13 +34,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  // Rotas Estáticas Principais
+  // 4. Rotas Estáticas Principais
   const staticEntries: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily',
-      priority: 1.0, // Home é a mais importante
+      priority: 1.0,
     },
     {
       url: `${baseUrl}/sobre`,
@@ -48,5 +50,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
+  // Junta tudo na ordem de importância
   return [...staticEntries, ...categoryEntries, ...productEntries]
 }
