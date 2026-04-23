@@ -83,6 +83,15 @@ export default function Checkout() {
             } else {
                 // --- TRAVA DE CPF MELHORADA (Busca em qualquer status) ---
                 if (codigo === 'BEMVINDO15') {
+                    // NOVA TRAVA: Verifica se o usuário está logado no Supabase Auth
+                    const { data: { user } } = await supabase.auth.getUser();
+
+                    if (!user) {
+                        setMsgCupom("⚠️ Cupom exclusivo para membros. Faça login ou cadastre-se!");
+                        setLoadingCupom(false);
+                        return;
+                    }
+
                     if (!cpf || cpf.length < 11) {
                         setMsgCupom("⚠️ Preencha seu CPF antes de aplicar este cupom.");
                         setLoadingCupom(false);
@@ -140,6 +149,14 @@ export default function Checkout() {
         try {
             // === DOUBLE CHECK DE SEGURANÇA (CUPOM) ===
             if (descontoCupom > 0 && cupomInput.trim().toUpperCase() === 'BEMVINDO15') {
+                // Verificação extra de segurança para garantir que ainda está logado
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    setLoading(false);
+                    setDescontoCupom(0);
+                    alert("Este cupom requer que você esteja logado na sua conta.");
+                    return;
+                }
                 const { data: checkFinal } = await supabase
                     .from('orders')
                     .select('id')
@@ -251,7 +268,7 @@ export default function Checkout() {
         const traco = "--------------------------------";
 
         const listaItens = savedOrder.items.map(i =>
-            `- ${i.quantity}x ${i.title} ${(i as any).size ? `(Tam: ${(i as any).size})` : ''}`
+            `- ${i.quantity}x ${i.title}${ (i as any).size ? `${quebra}  OPÇÃO/TAM: ${(i as any).size}` : '' }`
         ).join(quebra);
 
         const fmt = (val: number) => val.toFixed(2).replace('.', ',');
@@ -552,7 +569,7 @@ export default function Checkout() {
                             </div>
                             {msgCupom && (
                                 <p className={`text-[10px] mt-1 font-bold ${msgCupom.includes("❌") ? "text-red-400" :
-                                        msgCupom.includes("⚠️") ? "text-yellow-400" : "text-green-400"
+                                    msgCupom.includes("⚠️") ? "text-yellow-400" : "text-green-400"
                                     }`}>
                                     {msgCupom}
                                 </p>

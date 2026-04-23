@@ -514,9 +514,16 @@ export default function AdminDashboard() {
                 <h3 className="font-bold text-yellow-500 mb-2 uppercase text-xs tracking-wider">Itens Comprados</h3>
                 <ul className="divide-y divide-neutral-700">
                   {selectedOrder.items && Array.isArray(selectedOrder.items) && selectedOrder.items.map((item: any, idx: number) => (
-                    <li key={idx} className="py-2 flex justify-between">
-                      <span>{item.title} {item.size ? `(Tam: ${item.size})` : ''} x{item.quantity}</span>
-                      <span className="text-gray-300">{formatCurrency(item.price)}</span>
+                    <li key={idx} className="py-3 flex justify-between items-start border-b border-neutral-700/50 last:border-0">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-white font-medium">{item.title} <span className="text-gray-500 ml-1 text-xs">x{item.quantity}</span></span>
+                        {item.size && (
+                          <span className="text-[9px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded w-fit font-black uppercase tracking-widest italic">
+                            Tamanho Escolhido: {item.size}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-gray-400 font-mono text-xs">{formatCurrency(item.price * item.quantity)}</span>
                     </li>
                   ))}
                 </ul>

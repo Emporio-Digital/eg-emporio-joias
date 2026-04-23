@@ -49,7 +49,7 @@ export default function PaginaSucesso() {
     const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const listaItens = order.items.map((i: any) => 
-        `- ${i.quantity}x ${i.title} ${i.size ? `(Tam: ${i.size})` : ''}`
+        `- ${i.quantity}x ${i.title}${i.size ? `${quebra}  OPÇÃO/TAM: ${i.size}` : ''}`
     ).join(quebra);
 
     const linhas = [
@@ -146,7 +146,10 @@ export default function PaginaSucesso() {
             <div className="space-y-3 mb-6">
               {order.items.map((item: any, idx: number) => (
                 <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-gray-400">{item.quantity}x {item.title}</span>
+                  <div className="flex flex-col">
+                    <span className="text-gray-400">{item.quantity}x {item.title}</span>
+                    {item.size && <span className="text-[10px] text-yellow-500/70 font-bold uppercase tracking-widest italic">Opção: {item.size}</span>}
+                  </div>
                   <span className="text-white font-medium">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</span>
                 </div>
               ))}
