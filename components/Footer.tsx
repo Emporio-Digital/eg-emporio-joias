@@ -37,9 +37,19 @@ export default function Footer() {
 
             <div className="h-[1px] w-20 bg-white/10"></div>
 
-            <p className="text-[10px] text-gray-500 font-medium">
-                © EG Empório Digital.
-            </p>
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-[9px] text-gray-100 font-serif tracking-[0.3em] uppercase opacity-70">
+                Uma vitrine exclusiva
+              </span>
+              <a 
+                href="https://egemporiodigital.com.br/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-yellow-500 to-yellow-100 tracking-[0.15em] text-xs font-serif hover:brightness-125 transition-all uppercase"
+              >
+                EG Empório Digital
+              </a>
+            </div>
           </div>
         </div>
       </footer>
