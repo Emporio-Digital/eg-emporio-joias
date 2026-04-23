@@ -49,7 +49,7 @@ export default function PaginaSucesso() {
     const fmt = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     const listaItens = order.items.map((i: any) => 
-        `- ${i.quantity}x ${i.title}${i.size ? `${quebra}  OPÇÃO/TAM: ${i.size}` : ''}`
+        `- ${i.quantity}x ${i.title}${i.size ? `${quebra}  Opção/Tam: ${i.size}` : ''}`
     ).join(quebra);
 
     const linhas = [
@@ -208,7 +208,7 @@ export default function PaginaSucesso() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-[50px]"></div>
             <div className="relative z-10 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1">
-                <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Parceiro Oficial</h3>
+                <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Agência Principal</h3>
                 <h2 className="text-lg font-serif text-white mb-2 leading-tight">Gostou da experiência desta loja?</h2>
                 <p className="text-gray-400 text-xs mb-4 leading-relaxed">
                   A <strong className="text-white">EG Empório Digital</strong> desenvolve e-commerces de luxo e sistemas sob medida.
