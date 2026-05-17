@@ -3,6 +3,7 @@
 import { useEffect, useState, useLayoutEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import HeroBanner from '@/components/HeroBanner';
 
 // Chaves para o cache
 const SCROLL_KEY = 'home-scroll-pos';
@@ -112,6 +113,8 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col items-center min-h-screen animate-in fade-in duration-200 fill-mode-both">
+
+    <HeroBanner />
 
       {/* === SEÇÃO DESTAQUES === */}
       <section className="w-full max-w-7xl mt-10 px-4 mb-16">
